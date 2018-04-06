@@ -204,6 +204,65 @@ class Visualization:
     if show: plt.show()
     plt.close("all")
 
+class DEBUG_Visualization:
+  """Provides visualization for debugging purposes."""
+  def DEBUGGING_plot_adjoint(self, adj, save_name):
+    """docstring."""
+    #plt.close("all")
+    plt.figure(figsize=(16,5))
+    plt.grid(True, axis='both')  
+    plt.plot(self.mesh.X, adj)
+    plt.savefig(save_name, bbox_inches='tight')
+    #plt.show()
+    
+  def DEBUGGING_plot_djda(self, djda, save_name):
+    """docstring."""
+    #plt.close("all")
+    plt.figure(figsize=(16,5))
+    plt.grid(True, axis='both')  
+    plt.plot(self.mesh.X, djda)
+    plt.savefig(save_name, bbox_inches='tight')
+    #plt.show()
+    
+  def DEBUGGING_plot_dRstarda(self, dRstarda, timestep, save_name):
+    """docstring."""
+    #plt.close("all")
+    #plt.spy(dRstarda)
+    #plt.show()
+    plt.figure(figsize=(16,5))
+    plt.grid(True, axis='both')  
+    #plt.ylim([-0.1,0.1])
+    #plt.ylim([-2,2])
+    plt.plot(self.mesh.X,[dRstarda[i][i] for i in range(self.mesh.numnodes)], c='red')      
+    plt.plot(self.mesh.X[:-1],[dRstarda[i][i+1] for i in range(self.mesh.numnodes-1)], c='black')      
+    plt.plot(self.mesh.X[1:],[dRstarda[i+1][i] for i in range(self.mesh.numnodes-1)], c='green')      
+    plt.savefig(save_name, bbox_inches='tight')
+    plt.close('all')
+    plt.matshow(dRstarda)
+    plt.savefig('matshow'+save_name, bbox_inches='tight')
+    #plt.show()
+    print(dRstarda.shape)
+    df = pd.DataFrame(dRstarda)
+    df.to_csv('dRstarda_'+str(timestep)+'.csv')
+  
+  def DEBUGGING_plot_sums_of_dRstarda(self, A, save_name):
+    """Plot row and column sums of a Matrix A and plot the result."""
+    # rows
+    plt.close('all')
+    row_sums = [sum(A[i,:]) for i in range(A.shape[0])]
+    plt.figure(figsize=(16,5))
+    plt.plot(self.mesh.X, row_sums)  
+    plt.grid(True, axis='both')  
+    plt.savefig('row_'+save_name, bbox_inches='tight')
+    plt.close('all')
+    # columns
+    column_sums = [sum(A[:,i]) for i in range(A.shape[1])]
+    plt.figure(figsize=(16,5))
+    plt.plot(self.mesh.X, column_sums)  
+    plt.grid(True, axis='both')  
+    plt.savefig('column_'+save_name, bbox_inches='tight')
+    plt.close('all')
+
 if __name__ == '__main__':
   print("Nothing to excecute here. But there is no error either, that's fine.")
 

@@ -1,3 +1,11 @@
+# temporarily not to commit
 LaTeX_documentation
 sphinx_documentation
 src/transient.ipynb
+
+# Output
+*.png
+
+# python specific
+*.swp
+__pycache__

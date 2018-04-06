@@ -1,9 +1,9 @@
 import unittest
 import numpy as np
 import math
-#import matplotlib.pyplot as plt
 
-import NEW_transient_1D_heat as solver
+import transient_1D as solver
+import mesh_1D
 
 #############################################################################################
 class Tests_Primal(unittest.TestCase):
@@ -18,11 +18,11 @@ class Tests_Primal(unittest.TestCase):
     """All zero Test. BC, INIT is zero, solution is all zero at all times."""
     filename = 'UNITTEST_ZeroBCandINIT'
     num_nodes = 11
-    mesh = solver.mesh1D(begin=0, end=1, numnodes=num_nodes)
+    mesh = mesh_1D.mesh1D(begin=0, end=1, numnodes=num_nodes)
     init = np.zeros(num_nodes)
     alpha = None
     D = np.ones(num_nodes)
-    sim = solver.TransHeatEq1D(filename, mesh, init, alpha, D, T0=0, T1=0, Nt=2)
+    sim = solver.Transient_1D_Diffusion(mesh, D, init, 0, 0 , Nt=2, alpha=alpha)
     sim.calculatePrimal()
     self.assertTrue(np.allclose(sim.full_solution[0], np.zeros(num_nodes)))
     self.assertTrue(np.allclose(sim.full_solution[1], np.zeros(num_nodes)))
@@ -31,11 +31,11 @@ class Tests_Primal(unittest.TestCase):
     """Linear Solution. INIT is zero. BC are u(0)=0 and u(0)=1."""
     filename = 'UNITTEST_LinearSolution'
     num_nodes = 10
-    mesh = solver.mesh1D(begin=0, end=1, numnodes=num_nodes)
+    mesh = mesh_1D.mesh1D(begin=0, end=1, numnodes=num_nodes)
     init = np.zeros(num_nodes)
     alpha = None
     D = np.ones(num_nodes)
-    sim = solver.TransHeatEq1D(filename, mesh, init, alpha, D, T0=0, T1=1, Nt=2000)
+    sim = solver.Transient_1D_Diffusion(mesh, D, init, 1, 0, Nt=2000, alpha=alpha)
     sim.calculatePrimal()
     self.assertTrue(np.allclose(sim.full_solution[1999], np.linspace(0,1,num_nodes), rtol=1e-3, atol=1e-3))
 
@@ -43,11 +43,11 @@ class Tests_Primal(unittest.TestCase):
     """Linear Solution. INIT is zero. BC are u(0)=1 and u(0)=0."""
     filename = 'UNITTEST_LinearSolution2'
     num_nodes = 10
-    mesh = solver.mesh1D(begin=0, end=1, numnodes=num_nodes)
+    mesh = mesh_1D.mesh1D(begin=0, end=1, numnodes=num_nodes)
     init = np.zeros(num_nodes)
     alpha = None
     D = np.ones(num_nodes)
-    sim = solver.TransHeatEq1D(filename, mesh, init, alpha, D, T0=1, T1=0, Nt=2000)
+    sim = solver.Transient_1D_Diffusion(mesh, D, init, 0, 1, Nt=2000, alpha=alpha)
     sim.calculatePrimal()
     self.assertTrue(np.allclose(sim.full_solution[1999], np.linspace(1,0,num_nodes), rtol=1e-3, atol=1e-3))
 
@@ -55,11 +55,11 @@ class Tests_Primal(unittest.TestCase):
     """Transient fundamental solution."""
     filename = 'UNITTEST_FundamentalSolution'
     num_nodes = 101
-    mesh = solver.mesh1D(begin=0, end=35, numnodes=num_nodes)
+    mesh = mesh_1D.mesh1D(begin=0, end=35, numnodes=num_nodes)
     init = np.array([math.exp(-(x-15)**2) for x in getattr(mesh,'X')])
     alpha = None
     D = np.ones(num_nodes)
-    sim = solver.TransHeatEq1D(filename, mesh, init, alpha, D, T0=0, T1=0, Nt=2000)
+    sim = solver.Transient_1D_Diffusion(mesh, D, init, 0, 0, Nt=2000, alpha=alpha)
     sim.calculatePrimal()
 
     eta = np.sqrt((1. + 4*D*sim.dt*sim.Nt)/1.)
@@ -76,11 +76,11 @@ class Tests_Adjoint(unittest.TestCase):
     """All zero Test. BC, INIT is zero, solution is all zero at all times."""
     filename = 'UNITTEST_ZeroBCandINIT'
     num_nodes = 11
-    mesh = solver.mesh1D(begin=0, end=1, numnodes=num_nodes)
+    mesh = mesh_1D.mesh1D(begin=0, end=1, numnodes=num_nodes)
     init = np.array([math.exp(-(x-15)**2) for x in getattr(mesh,'X')])
     alpha = np.array([math.exp(-(x-20)**2) for x in getattr(mesh,'X')]) # for objective function
     D = np.ones(num_nodes)
-    sim = solver.TransHeatEq1D(filename, mesh, init, alpha, D, T0=0, T1=0, Nt=2)
+    sim = solver.Transient_1D_Diffusion(mesh, D, init, 0, 0, Nt=2, alpha=alpha)
     sim.calculatePrimal()
     sim.calculateAdjoint()
 
