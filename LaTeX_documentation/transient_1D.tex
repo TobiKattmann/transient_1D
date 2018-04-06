@@ -1,0 +1,219 @@
+\documentclass[10pt]{article}
+%\usepackage[utf8]{inputenc}
+\usepackage{amssymb} % for "real numbers" sign
+\usepackage{amsmath}  % for align environment
+\usepackage{hyperref}
+\usepackage[top=60pt,bottom=60pt,left=96pt,right=92pt]{geometry}
+\usepackage{xcolor}
+
+\begin{document}
+%-------------------------------------------------------------------------------------------------------%
+\title{Sensitivities via adjoints}
+\author{Tobias Kattmann}
+\maketitle
+\tableofcontents
+\textcolor{red}{TODO: In discrete versions, which terms are to be calculated with automatic differentiation.}
+%-------------------------------------------------------------------------------------------------------%
+\section{Primal}
+%-------------------------------------------------------------------------------------------------------%
+\subsection{Primal equation}
+The heat equation in 3D is a parabolic PDE:
+\begin{equation}\label{eq:heat3D}
+\frac{\partial u}{\partial t} + \nabla\cdot \left(- D\nabla u \right) = q.
+\end{equation}
+The task is to find a solution $u\left(\mathbf{x}, t\right)\in\mathbb{R}$ of  (\ref{eq:heat3D}) for $\mathbf{x}\in\mathbb{R}^3$ and $t\in(0,T]$. The inital and boundary conditions are:
+\begin{align}
+u(\mathbf{x},0) & = u_{init}(\mathbf{x}), \\
+u(\Gamma,t) & = u_{BC}(\mathbf{x,t}), \quad \mathbf{x}\in\Gamma
+\end{align}
+The parameter $D$ is the thermal diffusivity (physical meaning) and is here considered as a function of space and time $D\left(\mathbf{x},t\right)$. In 1D, the IBVP (Inital Boundary Value Problem) writes:
+\begin{eqnarray}
+\frac{\partial u}{\partial t} +\frac{\partial}{\partial x} \left(- D \frac{\partial u}{\partial x}  \right) &=& q, \\
+\text{subject to} \\
+u(x,0) &=& u_{init}(x), \\
+u(x_{start},t)&=& u_{start}, \\
+u(x_{end},t) &=& u_{end}.
+\end{eqnarray}
+%-------------------------------------------------------------------------------------------------------%
+\subsection{Discretization of primal}
+We want to solve the transient 1D Diffusion equation numerically with Finite Differences (FD). We will use the Method Of Lines (MOL) with a dual time stepping approach. Therefore we need to discretize the spatial and temporal domain such that $x=(x_i), i=0..m-1$ () ant $t=(t_i), i=0..n-1$. That means we have $m$ grid points and $m-2$ DOF's as we have Dirichlet boundary conditions on the two outer grid points. There are $n$ time level where $n-1$ have to be computed as the initial solution is given. We rewrite the PDE by using the product rule of differentiation:
+\begin{equation}
+\frac{\partial u}{\partial t} - \frac{\partial D}{\partial x}\frac{\partial u}{\partial x} -D \frac{\partial^2 u}{\partial x^2} - q = 0
+\end{equation}
+We set up an equation for each of the $m-2$ DOF's, as the values at the Dirichlet points $u_0, u_{n-1}$ are already known. First order spatial derivatives in the second term are discretized using central differences.
+\begin{equation}
+\frac{\partial u_i}{\partial x} = \frac{u_{i+1} - u_{i-1}}{2\Delta x}
+\end{equation}
+Second order spatial derivatives in the third term are discretized using central differences.
+\begin{equation}
+\frac{\partial^2 u_i}{\partial x^2} = \frac{u_{i+1} - 2 u_{i} + u_{i-1}}{\Delta x^2}
+\end{equation}
+Both methods can be expressed as an operator in form of a matrix that is applied on the quantity that needs to be derived. Say, First order derivative is expressed as $A$ and second order as $B$:
+\begin{equation}
+\frac{\partial (u_i)}{\partial t} - A(D_i)A(u_i) - (D_i) B(u_i) - (q_i) = 0
+\end{equation}
+For the MOL the spatial discretization terms are gathered in a Term $R(u,D)$.
+\begin{align}
+&R(u,D) = - A(D_i)A(u_i) - (D_i) B(u_i) - (q_i) \\
+\Rightarrow & \frac{\partial (u_i)}{\partial t} + R(u,D) = 0
+\end{align}
+The time discretization is done using the simplest approach, explicit forward Euler FD.
+\begin{equation}
+\frac{u_i^{n+1} - u_i^n}{\Delta t} + R(u^n,D) = 0
+\end{equation}
+which is iterated in each physical time step over multiple internal Iterations indicated by the subscript $p$.
+\begin{equation}
+u^{n+1}_{p+1} = u^n - \Delta t R(u^{n+1}_{p},D)
+\end{equation} 
+where $u^n$ is fixed over the pseudo iterations $p$ and after a satisfactory residual is reached (or a predefined number of pseudo iterations is done). The residual is:
+\begin{equation}
+R^*(u) = \frac{u^{n+1}_{p+1} - u^n}{\Delta t} +  R(u^{n+1}_{p},D)
+\end{equation}
+\textcolor{red}{Implement and test real dual time stepping.}
+%-------------------------------------------------------------------------------------------------------%
+\subsection{Optimization task}
+The optimization Task is:
+\begin{align}
+\underset{\alpha}{min}\,J\quad \text{subject to}\\
+\frac{\partial u}{\partial t} +\frac{\partial}{\partial x} \left(- D \frac{\partial u}{\partial x}  \right) &= q \\
+u(x,0) &= u_{init}(x), \\
+u(x_{start},t)&= u_{start} \\
+u(x_{end},t) &= u_{end}
+\end{align}
+The $\alpha$ are Design variables and $J$ the objective Function:
+\begin{equation}
+J = \int_{0}^{T} j(x, \alpha, t) dx.
+\end{equation}
+Written in a more general form:
+\begin{align}
+\underset{\alpha}{min}\,J\quad \text{subject to}\\
+\frac{\partial u}{\partial t} + R\left(u, \alpha \right) = 0
+\end{align}
+The optimization is performed using a gradient based approach, where the design variables are updated:
+\begin{equation}
+\alpha_{i+1} = \alpha_i - \epsilon \frac{d J}{d \alpha}
+\end{equation}
+The approach to calculate the derivative of the objective function with respect to the design variables is presented in the following section.
+%-------------------------------------------------------------------------------------------------------%
+\subsection{Derivation of discrete adjoint equation}
+In order to derive the adjoint equations we construct the Lagrangian $\mathcal{L}$ corresponding to the optimization problem:
+\begin{equation}
+\mathcal{L} = \int_{0}^{T} j\left(x,\alpha,t\right) +\lambda^T h(u,\dot u, \alpha,t) dt +\mu^T g(x(0),\alpha).
+\end{equation}
+with $h(u,\dot u, \alpha,t)$ beeing:
+\begin{equation}
+h(x,\dot x, \alpha,t) = \frac{\partial u}{\partial t} + R\left(u, \alpha \right) = 0,
+\end{equation}
+and the initial conditions
+\begin{equation}
+g(u(0),\alpha) = 0.
+\end{equation}
+The vector of Lagrangian multipliers (i.e. we are speaking of discretized version) $\lambda$ is a function of time, and $\mu$ is another vector of multipliers that are associated with the initial conditions. Because the two constraints $h = g = 0$ we are free to set the values of $\lambda$ and $\mu$, abd $d_{\alpha}\mathcal{L} = d_{\alpha}J$. Taking the total derivative of $\mathcal{L}$:
+\begin{align}
+\frac{d\mathcal{L}}{d \alpha} = \int_{0}^{T}\left[\frac{\partial j}{\partial u} \frac{\partial u}{\partial \alpha} + 
+\frac{\partial j}{\partial \alpha} +
+\lambda^T \left( \frac{\partial h}{\partial u} \frac{\partial u}{\partial \alpha} + \frac{\partial h}{\partial\dot u} \frac{\partial\dot u}{\partial \alpha} +
+\frac{\partial h}{\partial \alpha} \right)\right] dt + \\
+\mu^T \left( \frac{\partial g}{\partial u(0)} \frac{\partial u(0)}{\partial\alpha}  + \frac{\partial g}{\partial\alpha} \right)
+\end{align}
+The task is now find a form of $d_{\alpha}\mathcal{L}$ such that all $\partial_{\alpha} u$ and $\partial_{\alpha}\dot u$ terms are eliminated as they are costly to evaluate. First, in a sidestep, we integrate the term containing $\dot u$ by parts:
+\begin{equation}
+\int_{0}^{T} \lambda^T \frac{\partial h}{\partial\dot u} \frac{\partial\dot u}{\partial \alpha} dt =
+\left[ \lambda^T \frac{\partial h}{\partial\dot u} \frac{\partial u}{\partial \alpha} \right]^{T}_{0} - 
+\int_{0}^{T} \left[\dot \lambda^T \frac{\partial h}{\partial\dot u} + \lambda^T \frac{d}{dt}\frac{\partial h}{\partial\dot u} \right] 
+\frac{\partial u}{\partial \alpha} dt
+\end{equation}
+Substituting the result of integrating by parts into the original Lagrangian derivation and reformatting:
+\begin{align}
+\frac{d\mathcal{L}}{d \alpha} = 
+&\int_{0}^{T}\left( \frac{\partial j}{\partial u} + \lambda^T \left(  \frac{\partial h}{\partial u} + \frac{d}{dt}\frac{\partial h}{\partial\dot u} \right) - \dot\lambda^T \frac{\partial h}{\partial\dot u} \right) \frac{\partial u}{\partial \alpha} dt \\
++&\int_{0}^{T}\frac{\partial j}{\partial \alpha} + \lambda^T \frac{\partial h}{\partial \alpha} dt \\
++& \left[ \lambda^T \frac{\partial h}{\partial\dot u} \frac{\partial u}{\partial \alpha} \right]^{T} \\
++& \left[ \lambda^T \frac{\partial h}{\partial\dot u} + \mu^T \frac{\partial g}{\partial u(0)} \right]_{0}  \frac{\partial u(0)}{\partial \alpha} \\
++& \mu^T\frac{\partial g}{\partial\alpha}
+\end{align}
+In order to get avoid the need of computing $\partial_{\alpha} u$ we require in the first term for $t>0$:
+\begin{equation}
+\frac{\partial j}{\partial u} + \lambda^T \left(  \frac{\partial h}{\partial u} + \frac{d}{dt}\frac{\partial h}{\partial\dot u} \right) - \dot\lambda^T \frac{\partial h}{\partial\dot u} = 0, 
+\end{equation}
+\textcolor{red}{Is there a bug in my implementation concerning the transpose?!}
+Furthermore for the third term we set $\lambda(T)=0$. \textcolor{red}{What about BC?! Find appropriate derivation. Or is it already incorporated through discrete operators} Finally we set for the fourth term:
+\begin{equation}
+\mu^T = \left[- \lambda^T \frac{\partial h}{\partial\dot u} \right]_0 \left( \frac{\partial g}{\partial u(0)}\right)^{-1}
+\end{equation}
+The final total derivative then writes:
+\begin{equation}
+\frac{dJ}{d \alpha} =  \frac{d\mathcal{L}}{d \alpha} = \int_{0}^{T}\frac{\partial j}{\partial \alpha} + \lambda^T \frac{\partial h}{\partial \alpha} dt + \left[- \lambda^T \frac{\partial h}{\partial\dot u} \right]_0 \left( \frac{\partial g}{\partial u(0)}\right)^{-1} \frac{\partial g}{\partial\alpha}
+\end{equation}
+
+
+%-------------------------------------------------------------------------------------------------------%
+\section{Additional Material}
+From Qiqi Wang's youtube channel. Lecture 18 from 2015
+\subsection{Steady state discrete adjoint equation}
+Consider the optimization problem:
+\begin{eqnarray}
+\underset{\alpha}{min}\,J(u,\alpha)\quad \text{subject to}\\
+R(u,\alpha)=0
+\end{eqnarray}
+The functions $J$ and $R$ can be nonlinear in this case. We construct the Lagrangian:
+\begin{equation}
+J(u,\alpha) = J(u,\alpha) + 0 = J(u,\alpha) + R(u,\alpha) =  J(u,\alpha) + \lambda^T R(u,\alpha) = \mathcal{L},
+\end{equation}
+where we can freely choose the Lagrange multipliers $\lambda$. Note that everything is represented in its discrete version. So $R$ is a vector of the dimension of the unknowns. The total differential (here we assume $J = J(u)$) writes:
+\begin{equation}
+d\mathcal{L} = \frac{\partial J}{\partial u} du + \lambda^T \left( \frac{\partial R}{\partial u} du + \frac{\partial R}{\partial \alpha} d\alpha\right)
+\end{equation}
+which is the same as:
+\begin{equation}
+\frac{d\mathcal{L}}{d\alpha} = \frac{\partial J}{\partial u} \frac{du}{d\alpha} + \lambda^T \left( \frac{\partial R}{\partial u} \frac{du}{d\alpha} + \frac{\partial R}{\partial \alpha}\right)
+\end{equation}
+Eliminating the term $du$ or $\frac{du}{d\alpha}$ respectively yields the adjoint equation:
+\begin{equation}
+d\mathcal{L} = \underbrace{\left(\frac{\partial J}{\partial u} + \lambda^T  \frac{\partial R}{\partial u} \right)}_{\overset{!}{=} 0} du + \lambda^T \frac{\partial R}{\partial \alpha} d\alpha
+\end{equation}
+The adjoint equation is under-braced. This leaves the sensitivities:
+\begin{equation}
+\frac{d\mathcal{L}}{d\alpha} = \frac{dJ}{d\alpha} = \lambda^T \frac{\partial R}{\partial \alpha}
+\end{equation}
+\textcolor{red}{Are the boundary conditions decoded in the adjoint equation over $R$?}
+%-------------------------------------------------------------------------------------------------------%
+\subsection{Continuous Adjoint: Poisson equation}
+Consider the optimization problem:
+\begin{eqnarray}
+\underset{\alpha}{min}\,J(u)=\int_{\Omega}cu \,dx\quad \text{subject to}\\
+R(u,\alpha)= \nabla\cdot\left( \alpha \nabla u \right) - f =0, \quad u=0\,on \,\partial\Omega
+\end{eqnarray}
+where c is an arbitrary function, $\alpha = \alpha(x)$. Again we're adding zero to our objective function aka defining the Lagrangian:
+\begin{equation}
+J = \int_{\Omega}cu \,dx + \int_{\Omega} \lambda\left( \nabla\cdot\left( \alpha \nabla u \right) - f \right) \,dx
+\end{equation}
+The total differential writes
+\begin{equation}
+\delta J = \int_{\Omega}c\,\delta u \,dx + \int_{\Omega} \lambda\left( \nabla\cdot\left( \alpha \nabla \delta u \right)  \right) \,dx + \int_{\Omega} \lambda\left( \nabla\cdot\left( \delta\alpha \nabla  u \right)  \right) \,dx
+\end{equation}
+As we want to avoid computing $\delta u$ we perform integration by parts twice on the middle term to receive a term without applied derivations:
+\begin{equation}
+\int_{\Omega} \lambda\left( \nabla\cdot\left( \alpha \nabla \delta u \right)  \right) \,dx = \int_{\partial\Omega} \lambda \left( \alpha \nabla \delta u \right)\cdot n \,dS - \int_{\Omega} \nabla\lambda \cdot \left( \alpha \nabla \delta u \right) \,dx
+\end{equation}
+where $n$ is the outward facing normal vector. We set $\lambda=0$ on the boundary $\partial\Omega$ such that the surface Integral vanishes. We continue with the second integration by parts, the factor $\alpha$ can be repositioned:
+\begin{equation}
+- \int_{\Omega} \left(\alpha\nabla\lambda\right) \cdot \nabla \delta u \,dx = -\int_{\partial\Omega}\delta u\left(\alpha\nabla\lambda\right) \cdot n \,dS + \int_{\Omega}\delta u\left(\nabla \cdot \left(\alpha\nabla\lambda\right)\right) \,dx
+\end{equation}
+where the boundary integral is zero everywhere as $\lambda=0$ on $\partial\Omega$. Putting the leftover term back in the total differential yields:
+\begin{align}
+\delta J &= \int_{\Omega}c\,\delta u \,dx + \int_{\Omega}\delta u\left(\nabla \cdot \left(\alpha\nabla\lambda\right)\right) \,dx + \int_{\Omega} \lambda\left( \nabla\cdot\left( \delta\alpha \nabla  u \right)  \right) \,dx\\
+&= \int_{\Omega} \underbrace{\left[c + \nabla \cdot \left(\alpha\nabla\lambda\right)\right]}_{\overset{!}{=} 0} \delta u \,dx + \int_{\Omega} \lambda\left( \nabla\cdot\left( \delta\alpha \nabla  u \right)  \right) \,dx \\
+&= \int_{\Omega} \lambda\left( \nabla\cdot\left( \delta\alpha \nabla  u \right)  \right) \,dx 
+\end{align}
+Performing now another integration by parts yields:
+\begin{align}
+\delta J &= \underbrace{\int_{\partial\Omega} \lambda \left( \delta\alpha \nabla  u \right)\cdot n \,dS}_{=0} - \int_{\Omega} \nabla\lambda \cdot \left( \delta\alpha \nabla u \right) \,dx\\
+&= - \int_{\Omega} \nabla\lambda \cdot \nabla u \,\delta\alpha \,dx
+\end{align}
+\textcolor{red}{The sign is wrong in Qiqi's derivation's last step. Now Qiqi comes to the conclusion which I cannot follow. He simply says that then:}
+\begin{equation}
+\frac{\partial J}{\partial \alpha} = \nabla\lambda\cdot \nabla u
+\end{equation}
+%-------------------------------------------------------------------------------------------------------%
+\end{document}

@@ -1,10 +1,16 @@
 # temporarily not to commit
-LaTeX_documentation
 sphinx_documentation
 src/transient.ipynb
 
 # Output
 *.png
+
+# LaTeX specific
+*.aux
+*.log
+*.pdf
+*.toc
+*.out
 
 # python specific
 *.swp
