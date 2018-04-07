@@ -34,6 +34,7 @@ u(x,0) &=& u_{init}(x), \\
 u(x_{start},t)&=& u_{start}, \\
 u(x_{end},t) &=& u_{end}.
 \end{eqnarray}
+\subsubsection{Analaytical solution (fundamental sol)}
 %-------------------------------------------------------------------------------------------------------%
 \subsection{Discretization of primal}
 We want to solve the transient 1D Diffusion equation numerically with Finite Differences (FD). We will use the Method Of Lines (MOL) with a dual time stepping approach. Therefore we need to discretize the spatial and temporal domain such that $x=(x_i), i=0..m-1$ () ant $t=(t_i), i=0..n-1$. That means we have $m$ grid points and $m-2$ DOF's as we have Dirichlet boundary conditions on the two outer grid points. There are $n$ time level where $n-1$ have to be computed as the initial solution is given. We rewrite the PDE by using the product rule of differentiation:
@@ -134,10 +135,18 @@ Substituting the result of integrating by parts into the original Lagrangian der
 \end{align}
 In order to get avoid the need of computing $\partial_{\alpha} u$ we require in the first term for $t>0$:
 \begin{equation}
-\frac{\partial j}{\partial u} + \lambda^T \left(  \frac{\partial h}{\partial u} + \frac{d}{dt}\frac{\partial h}{\partial\dot u} \right) - \dot\lambda^T \frac{\partial h}{\partial\dot u} = 0, 
+\frac{\partial j}{\partial u} + \lambda^T \left(  \frac{\partial h}{\partial u} + \frac{d}{dt}\frac{\partial h}{\partial\dot u} \right) - \dot\lambda^T \frac{\partial h}{\partial\dot u} = 0.
 \end{equation}
-\textcolor{red}{Is there a bug in my implementation concerning the transpose?!}
-Furthermore for the third term we set $\lambda(T)=0$. \textcolor{red}{What about BC?! Find appropriate derivation. Or is it already incorporated through discrete operators} Finally we set for the fourth term:
+We reformulate the adjoint equation by taking the transpose of the whole equation and multiplying with $-1$:
+\begin{equation}
+\frac{\partial h}{\partial\dot u}^T\dot\lambda - \left(\frac{\partial h}{\partial u} + \frac{d}{dt}\frac{\partial h}{\partial\dot u} \right)^T \lambda  - \frac{\partial j}{\partial u}^T  = 0.
+\end{equation}
+For every PDE we can simply require that $\frac{\partial h}{\partial\dot u} = I$ with $I$ being the elementary matrix such that the adjoint PDE simplifies to:
+\begin{equation}
+\dot\lambda - \frac{\partial h}{\partial u}^T \lambda  - \frac{\partial j}{\partial u}^T  = 0.
+\end{equation}
+where the $\frac{\partial h}{\partial u}^T$ represents a matrix operator which works on $\lambda$. \textcolor{red}{What about the time marching algorithm, can it be chosen freely or is it also a derivative of the primal? If so where is the error in the derivation.}
+Furthermore for the third term we set $\lambda(T)=0$. \textcolor{red}{What about BC?! Find appropriate derivation. Or is it already incorporated through discrete operators} Finally we set for the fourth term to zero using:
 \begin{equation}
 \mu^T = \left[- \lambda^T \frac{\partial h}{\partial\dot u} \right]_0 \left( \frac{\partial g}{\partial u(0)}\right)^{-1}
 \end{equation}
@@ -145,9 +154,13 @@ The final total derivative then writes:
 \begin{equation}
 \frac{dJ}{d \alpha} =  \frac{d\mathcal{L}}{d \alpha} = \int_{0}^{T}\frac{\partial j}{\partial \alpha} + \lambda^T \frac{\partial h}{\partial \alpha} dt + \left[- \lambda^T \frac{\partial h}{\partial\dot u} \right]_0 \left( \frac{\partial g}{\partial u(0)}\right)^{-1} \frac{\partial g}{\partial\alpha}
 \end{equation}
-
+In our case we have $\frac{\partial g}{\partial\alpha}=0$ and $\frac{\partial j}{\partial \alpha}=0$ such that the total derivative simplifies to:
+\begin{equation}
+\frac{dJ}{d \alpha} =  \frac{d\mathcal{L}}{d \alpha} = \int_{0}^{T} \lambda^T \frac{\partial h}{\partial \alpha} dt
+\end{equation}
 
 %-------------------------------------------------------------------------------------------------------%
+\newpage
 \section{Additional Material}
 From Qiqi Wang's youtube channel. Lecture 18 from 2015
 \subsection{Steady state discrete adjoint equation}
