@@ -6,7 +6,7 @@ class Visualization:
   def __init__(self, Sim):
     """Hand over solver instance which contains all solution data."""
     self.sim = Sim
-    self.folderpath = "../NEWimages-tobi-code/"
+    self.folderpath = "./images/"
     
   def Residuals(self, show=False, save=True): 
     """Saves/Shows Primal and Adjoint Residuals."""
