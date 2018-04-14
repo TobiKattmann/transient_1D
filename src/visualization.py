@@ -105,18 +105,19 @@ class Visualization:
       return lines
 
     def update_line_primal(i):
+      i *=4
       xlist = [self.sim.mesh.X, self.sim.mesh.X]
-      ylist = [self.sim.full_solution[i], self.sim.adjoint_solution[i]]
+      ylist = [self.sim.full_solution[i], self.sim.adjoint_solution[-i]]
 
       for lnum, line in enumerate(lines):
         line.set_data(xlist[lnum], ylist[lnum])
       return lines
 
-    sol_ani = animation.FuncAnimation(fig, update_line_primal, init_func=init, frames=self.sim.Nt, blit=True, interval=1)
+    sol_ani = animation.FuncAnimation(fig, update_line_primal, init_func=init, frames=int(self.sim.Nt/4), blit=True, interval=0.01)
     plt.plot(self.sim.mesh.X,self.sim.full_solution[1], label='initial primal', c='black')
     plt.plot(self.sim.mesh.X,self.sim.full_solution[-1], label='final primal', c='grey')
-    plt.plot(self.sim.mesh.X,self.sim.adjoint_solution[1], label='initial adjoint', c='black')
-    plt.plot(self.sim.mesh.X,self.sim.adjoint_solution[-1], label='final adjoint', c='grey')
+    plt.plot(self.sim.mesh.X,self.sim.adjoint_solution[1], label='final adjoint', c='black')
+    plt.plot(self.sim.mesh.X,self.sim.adjoint_solution[-1], label='initial adjoint', c='grey')
     
     ax.set_title('Primal and Adjoint solution')
     ax.set_xlabel('solution')
@@ -197,13 +198,32 @@ class Visualization:
 
   def template(self, show=False, save=False):
     """Docstring."""
-    ...  
   
     fullImagePath = ''.join([self.folderpath, "image_name.png"])
     if save: plt.savefig(fullImagePath, bbox_inches='tight')
     if show: plt.show()
     plt.close("all")
 
+#---------------------------------------------------------------------------------------#
+def compareFDandAdjointSensitivities(mesh, AdjointDerivative, FDDerivative, show=True, save=True):
+  """Docstring."""
+  folderpath = "./images/"
+
+  plt.plot(mesh, AdjointDerivative/np.amax(np.absolute(AdjointDerivative)), label="Adjoint Sens")
+  plt.plot(mesh, FDDerivative/np.amax(np.absolute(FDDerivative)), label="FD Sens")
+
+  plt.title("normed Sensitivities")
+  plt.xlabel("x")
+  plt.grid(True, axis='both')
+  plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+  plt.legend()
+
+  fullImagePath = ''.join([folderpath, "FDandAdjointSens.png"])
+  if save: plt.savefig(fullImagePath, bbox_inches='tight')
+  if show: plt.show()
+  plt.close("all")
+
+#---------------------------------------------------------------------------------------#
 class DEBUG_Visualization:
   """Provides visualization for debugging purposes."""
   def DEBUGGING_plot_adjoint(self, adj, save_name):
@@ -265,4 +285,3 @@ class DEBUG_Visualization:
 
 if __name__ == '__main__':
   print("Nothing to excecute here. But there is no error either, that's fine.")
-

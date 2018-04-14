@@ -121,9 +121,10 @@ class Transient_1D_Diffusion:
     """docstring TODO"""
     obj = 0.
     for n in range(self.Nt):
-      for i in range(len(self.alpha)):
-        obj += self.mesh.dx * self.alpha[i] * self.full_solution[n][i] 
-      obj *= self.dt
+      if n == self.Nt-1:#HERE
+        for i in range(len(self.alpha)):
+          obj += self.mesh.dx * self.alpha[i] * self.full_solution[n][i] 
+        obj *= self.dt
 
     self.obj = obj
     return obj
@@ -132,6 +133,7 @@ class Transient_1D_Diffusion:
     """docstring TODO"""
     self.djdu = self.alpha
     self.u_init = np.zeros(self.mesh.numnodes)
+    self.u_init = -self.alpha#HERE
     adjoint_solution, self.adjointRes = Numerics.perform_dualTimeStepping(self.Nt, self.dt, self.dt, self.NPt, self.u_init, self.u_left, self.u_right, self.get_AdjointResidual, reverse_timestepping_factor=-1.)
     self.adjoint_solution = list(reversed(adjoint_solution))
 
@@ -143,7 +145,7 @@ class Transient_1D_Diffusion:
       self.A1 = TMP[:, np.newaxis]*self.FD1.toarray()
       self.A2 = self.D[:, np.newaxis]*self.FD2.toarray()
       self.FirstTime_AdjointResidual = False
-    R =  -(- self.A1.T - self.A2.T)@l - self.djdu.T
+    R =  -(- self.A1.T - self.A2.T)@l #- self.djdu.T HERE
     return R
 
   def calculateSensitivities(self):
@@ -243,7 +245,7 @@ if __name__ == '__main__':
     VisuNew.Sensitivities(Sensitivities, show=False, save=True)
     VisuNew.DiffusionCoefficient(DiffusionCoefficients, show=False, save=True)
 
-  if False:
+  if True:
     #cleanup old files
     os.system('rm -v ../NEWimages-tobi-code/*')
 
@@ -256,7 +258,7 @@ if __name__ == '__main__':
       init = np.array([math.exp(-(x-15)**2) for x in getattr(mesh,'X')])
       alpha = np.array([math.exp(-(x-20)**2) for x in getattr(mesh,'X')]) # for objective function
       #sim = TransHeatEq1D(filename, mesh, init, alpha, D, T0=0, T1=0, Nt=4000)
-      sim = Transient_1D_Diffusion(mesh, D, init, 0, 0 , Nt=8000, alpha=alpha)
+      sim = Transient_1D_Diffusion(mesh, D, init, 0, 0 , Nt=4000, alpha=alpha)
       # Solver
       sim.calculatePrimal()
       J = sim.calculateObjectiveFunction()
@@ -271,7 +273,7 @@ if __name__ == '__main__':
     derivative_handle = lambda sim: derivative(sim)
     initial_DesignVars = np.ones(num_nodes)*2.
 
-    opt = optimizer.Optimizer(obj_handle, derivative_handle, initial_DesignVars, num_DesignCycles=5, factorDesignVarUpdate=10)
+    opt = optimizer.Optimizer(obj_handle, derivative_handle, initial_DesignVars, num_DesignCycles=15, factorDesignVarUpdate=10)
     opt.optimize()
 
   if False:
@@ -303,8 +305,9 @@ if __name__ == '__main__':
     plt.show()
 
     FD_sens.Plot_Sensitivities(mesh.X)
+    FDderivative = copy.copy(dJda)
 
-  if True: # with Numerics2
+  if False: # with Numerics2
     num_nodes = 101
     Nt = 4000
     mesh = mesh_1D.mesh1D(begin=0, end=35, numnodes=num_nodes)
@@ -319,17 +322,39 @@ if __name__ == '__main__':
     sim.calculateAdjoint()
     t2=time.time()
     sim.calculateSensitivities()
+    AdjointDerivative = copy.copy(sim.Dderivative)
     t3=time.time()
     print(t1-t0,t2-t1,t3-t2)
 
     VisuNew = visualization.Visualization(sim)
     VisuNew.Residuals(save=True,show=False)
-    VisuNew.Animate_Primal(show=False, save=False)
-    VisuNew.Animate_Adjoint(show=False, save=False)
-    VisuNew.Animate_Primal_and_Adjoint(show=False, save=False)
+    VisuNew.Animate_Primal(show=True, save=False)
+    VisuNew.Animate_Adjoint(show=True, save=False)
+    VisuNew.Animate_Primal_and_Adjoint(show=True, save=False)
     VisuNew.PrimalAdjointSensitivitiesDiffusivity(show=False, save=True)
     #VisuNew.ObjectiveFunction(False, True, cycles, Objective_Function)
     VisuNew.Sensitivities([sim.Dderivative], show=False, save=True)
     #VisuNew.DiffusionCoefficient(DiffusionCoefficients, show=False, save=True)
     a =1
+
+  compareFDandAdjoint = False
+  if compareFDandAdjoint == True:
+    visualization.compareFDandAdjointSensitivities(sim.mesh.X, AdjointDerivative, FDderivative)
+    
+  adjoint_check = False
+  if adjoint_check == True:
+    print(sim.dt, sim.Nt, D)
+    eta = np.sqrt((1. + 4*D*sim.dt*sim.Nt)/1.)
+    analytical_solution = -np.exp(-((np.array(sim.mesh.X)-20.)**2)/eta**2)/eta
+
+    plt.plot(sim.mesh.X, analytical_solution, label="Analytical")
+    plt.plot(sim.mesh.X, sim.adjoint_solution[0], marker=".",label="Numerical")
+  
+    plt.title("Adjoint solution")
+    plt.xlabel("x")
+    plt.ylabel("i")
+    plt.grid(True, axis='both')
+    plt.legend()
+    plt.savefig('adjoint_sol', bbox_inches='tight')
+    plt.show()
 
