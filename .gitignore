@@ -11,6 +11,7 @@ src/transient.ipynb
 *.pdf
 *.toc
 *.out
+*.gz
 
 # python specific
 *.swp

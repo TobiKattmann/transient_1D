@@ -12,41 +12,35 @@
 \author{Tobias Kattmann}
 \maketitle
 \tableofcontents
-\textcolor{red}{TODO: In discrete versions, which terms are to be calculated with automatic differentiation.}
+
 %-------------------------------------------------------------------------------------------------------%
 \section{Primal}
 %-------------------------------------------------------------------------------------------------------%
 \subsection{Primal equation}
 The heat equation in 3D is a parabolic PDE:
 \begin{equation}\label{eq:heat3D}
-\frac{\partial u}{\partial t} + \nabla\cdot \left(- D\nabla u \right) = q.
+\frac{\partial u}{\partial t} + \nabla\cdot \left(- d\nabla u \right) = q.
 \end{equation}
 The task is to find a solution $u\left(\mathbf{x}, t\right)\in\mathbb{R}$ of  (\ref{eq:heat3D}) for $\mathbf{x}\in\mathbb{R}^3$ and $t\in(0,T]$. The inital and boundary conditions are:
 \begin{align}
 u(\mathbf{x},0) & = u_{init}(\mathbf{x}), \\
 u(\Gamma,t) & = u_{BC}(\mathbf{x,t}), \quad \mathbf{x}\in\Gamma
 \end{align}
-The parameter $D$ is the thermal diffusivity (physical meaning) and is here considered as a function of space and time $D\left(\mathbf{x},t\right)$. In 1D, the IBVP (Inital Boundary Value Problem) writes:
+The parameter $d$ is the thermal diffusivity (physical meaning) and is here considered as a function of space $d\left(\mathbf{x}\right)$. In 1D, the IBVP (Inital Boundary Value Problem) writes:
 \begin{eqnarray}
-\frac{\partial u}{\partial t} +\frac{\partial}{\partial x} \left(- D \frac{\partial u}{\partial x}  \right) &=& q, \\
-\text{subject to} \\
-u(x,0) &=& u_{init}(x), \\
-u(x_{start},t)&=& u_{start}, \\
-u(x_{end},t) &=& u_{end}.
-\end{eqnarray}
-\begin{eqnarray}
-\frac{\partial u}{\partial t} +\frac{\partial}{\partial x} \left(- D \frac{\partial u}{\partial x}  \right) &=& 0, \\
+\frac{\partial u}{\partial t} +\frac{\partial}{\partial x} \left(- d \frac{\partial u}{\partial x}  \right) &=& 0, \\
 \text{subject to} \\
 u(x,0) &=& u_{init}(x), \\
 u(x_{start},t)&=& u_{start}, \\
 u(x_{end},t) &=& u_{end}.
 \end{eqnarray}
 \subsubsection{Analaytical solution (fundamental sol)}
+TODO
 %-------------------------------------------------------------------------------------------------------%
 \subsection{Discretization of primal}
-We want to solve the transient 1D Diffusion equation numerically with Finite Differences (FD). We will use the Method Of Lines (MOL) with a dual time stepping approach. Therefore we need to discretize the spatial and temporal domain such that $x=(x_i), i=0..m-1$ () ant $t=(t_i), i=0..n-1$. That means we have $m$ grid points and $m-2$ DOF's as we have Dirichlet boundary conditions on the two outer grid points. There are $n$ time level where $n-1$ have to be computed as the initial solution is given. We rewrite the PDE by using the product rule of differentiation:
+We want to solve the transient 1D Diffusion equation numerically with Finite Differences (FD). We will use the Method Of Lines (MOL) with a dual time stepping approach. Therefore we need to discretize the spatial and temporal domain such that $x=(x_i), i=0..m-1$ () and $t=(t_i), i=0 .. n-1$. That means we have $m$ grid points and $m-2$ DOF's as we have Dirichlet boundary conditions on the two outer grid points. There are $n$ time level where $n-1$ have to be computed as the initial solution is given. We rewrite the PDE by using the product rule of differentiation:
 \begin{equation}
-\frac{\partial u}{\partial t} - \frac{\partial D}{\partial x}\frac{\partial u}{\partial x} -D \frac{\partial^2 u}{\partial x^2} - q = 0
+\frac{\partial u}{\partial t} - \frac{\partial d}{\partial x}\frac{\partial u}{\partial x} -d \frac{\partial^2 u}{\partial x^2}  = 0
 \end{equation}
 We set up an equation for each of the $m-2$ DOF's, as the values at the Dirichlet points $u_0, u_{n-1}$ are already known. First order spatial derivatives in the second term are discretized using central differences.
 \begin{equation}
@@ -56,68 +50,96 @@ Second order spatial derivatives in the third term are discretized using central
 \begin{equation}
 \frac{\partial^2 u_i}{\partial x^2} = \frac{u_{i+1} - 2 u_{i} + u_{i-1}}{\Delta x^2}
 \end{equation}
-Both methods can be expressed as an operator in form of a matrix that is applied on the quantity that needs to be derived. Say, First order derivative is expressed as $A$ and second order as $B$:
+Both methods can be expressed as an operator in form of a matrix that is applied on the quantity that needs to be derived. Say, First order derivative is expressed as $\mathbf{A_1}$ and second order as $\mathbf{A_2}$:
 \begin{equation}
-\frac{\partial (u_i)}{\partial t} - A(D_i)A(u_i) - (D_i) B(u_i) - (q_i) = 0
+\frac{\partial u}{\partial t} - \mathbf{A_1}d\mathbf{A_1}u - d \mathbf{A_2}u = 0
 \end{equation}
-For the MOL the spatial discretization terms are gathered in a Term $R(u,D)$.
+As the spatial discretization is linear in $u$ we collect the terms and simplify towards a single fixed operator working on u:
 \begin{align}
-&R(u,D) = - A(D_i)A(u_i) - (D_i) B(u_i) - (q_i) \\
-\Rightarrow & \frac{\partial (u_i)}{\partial t} + R(u,D) = 0
+&-diag(\mathbf{A_1}d)\mathbf{A_1}u - diag(d) \mathbf{A_2}u \\
+=&\left[ -diag(\mathbf{A_1}d)\mathbf{A_1} - diag(d) \mathbf{A_2} \right]u \\
+=& \mathbf{B}u
 \end{align}
-The time discretization is done using the simplest approach, explicit forward Euler FD.
+For the MOL the spatial discretization terms are gathered in a Term $R(u,d)$.
+\begin{align}
+&R(u,d) = \mathbf{B}u  \\
+\Rightarrow & \frac{\partial u}{\partial t} + R(u,d) = 0
+\end{align}
+The time discretization is done using first order backward differences:
 \begin{equation}
-\frac{u_i^{n+1} - u_i^n}{\Delta t} + R(u^n,D) = 0
+\hat R (u,d) = \frac{u^{n} - u^{n-1}}{\Delta t} + R(u^n,d) = 0,\quad i= 1\,..\,N
 \end{equation}
-which is iterated in each physical time step over multiple internal Iterations indicated by the subscript $p$.
+With $N$ being the number of physical time steps. $u^0$ is given as the initial solution as part of the IBVP. The dual time stepping method is then used to converge the above equation to a steady state in fictitious time $\tau$. 
 \begin{equation}
-u^{n+1}_{p+1} = u^n - \Delta t R(u^{n+1}_{p},D)
+\frac{d u^n}{d\tau} + \hat R(u^{n},d) = 0
 \end{equation} 
-where $u^n$ is fixed over the pseudo iterations $p$ and after a satisfactory residual is reached (or a predefined number of pseudo iterations is done). The residual is:
+The explicit Euler method is used here. Each iteration of the pseudo time stepping is depicted with the subscript $p$:
 \begin{equation}
-R^*(u) = \frac{u^{n+1}_{p+1} - u^n}{\Delta t} +  R(u^{n+1}_{p},D)
+\frac{u^n_{p+1}-u^n_{p}}{\Delta\tau} + \hat R(u^{n}_{p},d) = 0,\quad p= 1\,..\,m,\quad i= 1\,..\,N
+\end{equation} 
+This can be rewritten in a fixed-point iteration form:
+\begin{align}
+u^n_{p+1} &= u^n_{p} - \Delta\tau\hat R(u^{n}_{p},d),\quad p= 1\,..\,m,\quad i= 1\,..\,N\\
+u^n_{p+1} &= G^n \left( u^n_p, u^{n-1} \right),\quad p= 1\,..\,m,\quad i= 1\,..\,N
+\end{align}
+where $u^{n-1}$ is the converged solution of the previous time step. The fixed point iteration converges to the solution (fixed point) $u^n$:
+\begin{equation}
+u^n = G^n\left( u^n, u^{n-1} \right),\quad i= 1\,..\,N
 \end{equation}
-\textcolor{red}{Implement and test real dual time stepping.}
 %-------------------------------------------------------------------------------------------------------%
 \subsection{Optimization task}
 The optimization Task is:
 \begin{align}
-\underset{\alpha}{min}\,J\quad \text{subject to}\\
-\frac{\partial u}{\partial t} +\frac{\partial}{\partial x} \left(- D \frac{\partial u}{\partial x}  \right) &= q \\
-u(x,0) &= u_{init}(x), \\
-u(x_{start},t)&= u_{start} \\
-u(x_{end},t) &= u_{end}
+\underset{\alpha}{min}\quad J &= J(u^N), \\
+\text{subject to}\quad u^n &= G^n \left( u^n, u^{n-1}, \alpha \right),\quad i= 1\,..\,N
 \end{align}
-in our case the initial and boundary conditions are:
+The objective function is only dependent on the solution at the final time. This decision will have impact during the derivation of the adjoint equation, the derivative of the objective function with respect to the state variable will appear as an initial condition for the adjoint solution instead of a source term in the adjoint equation:
+\begin{equation}
+J(u^N) = -(u^N)^T f(x)
+\end{equation}
+The negative sign indicates that the actually a maximization is desired by with that the widely used understanding that optimization equals minimization we are consistent with that. 
+The objective function can be understood as spatial integration of solution with a function $f$.
+\subsection{Lagrangian of the constrained optimization problem}
+The Lagrangian of the above formulated constrained optimization problem is:
+\begin{equation}
+\mathcal{L} = J\left( u^N \right) - \sum_{n=1}^{N} \left( \lambda^n \right)^T\left( U^n - G^n \left( u^n, u^{n-1}, \alpha \right) \right)
+\end{equation}
+with $\lambda^n$ the Lagrangian multiplier vector (or adjoint state vector) at time $n$. The first order optimality conditions are:
 \begin{align}
-u(x,0) &= e^{-\left( x-15 \right)^2}, \\
-u(x_{start},t)&= 0, \\
-u(x_{end},t) &= 0
+\frac{\partial \mathcal{L}}{\partial \lambda^n} &= 0,\quad i= 1\,..\,N\quad\text{(state equations)}\\
+\frac{\partial \mathcal{L}}{\partial u^n} &= 0,\quad i= 1\,..\,N\quad\text{(adjoint equations)}\\
+\frac{\partial \mathcal{L}}{\partial \alpha} &= 0,\quad\text{(control equation)}\\
 \end{align}
-\begin{align}
-u(x,0) &= u_{init}(x) \\
-u(x_{start},t)&= 0 \\
-u(x_{end},t) &= 0
-\end{align}
-The $\alpha$ are Design variables and $J$ the objective Function:
+\subsection{Derivation of adjoint equations}
+With above formulated optimality conditions we can directly derive the adjoint equations in a fixed point form. Otherwise one would take the total derivative of $\mathcal{L}$ with respect to $\alpha$ and gather the terms containing du/da.
 \begin{equation}
-J = \int_{0}^{T} j(x, \alpha, t) dx.
+\frac{\partial \mathcal{L}}{\partial u^n} = \frac{\partial J}{\partial u^n} - \left( \lambda^n \right)^T +\left( \lambda^n \right)^T \frac{\partial G^n \left( u^n,u^{n-1} \right)}{\partial u^n} +\left( \lambda^{n+1} \right)^T \frac{\partial G^{n+1}\left( u^{n+1},u^{n} \right)}{\partial u^n}  = 0
 \end{equation}
-In our case:
+Taking the transpose and reformatting in a fixed point form leads to:
 \begin{equation}
-J = \int_{\Omega} e^{-\left( x-20 \right)^2}u(x, \alpha, T) \,dx
+\lambda^{n}_{i+1} = \left( \frac{\partial J}{\partial u^n} \right)^T + \left( \frac{\partial G^n\left( u^n,u^{n-1} \right)}{\partial u^n}  \right)^T \lambda^n_i  +\left( \frac{\partial G^{n+1}\left( u^{n+1},u^{n} \right)}{\partial u^n}  \right)^T \lambda^{n+1}
 \end{equation}
+with subscript $i$ indicating inner iterations. In the following the each term is looked at in detail and derived from the actual primal discretization as until now everything is as general as it gets. An iteration procedure is the goal. 
+\subsubsection*{2nd term}
+The following derivation is valid for $n = 1\,..\,N$. Starting with:
 \begin{equation}
-J = \int_{\Omega} j\left( u(T), \alpha \right) \,dx
+G^n\left( u^n,u^{n-1} \right) = u^n - \Delta\tau\left[ \frac{1}{\Delta t} u^{n} - \frac{1}{\Delta t} u^{n-1} + R \left( u^n \right) \right]
 \end{equation}
+wherein we can express the spatial residual very simple as a linear matrix-vector product:
 \begin{equation}
-J =J\left( u(T) \right) 
+G^n\left( u^n,u^{n-1} \right) = u^n - \Delta\tau\left[ \frac{1}{\Delta t} u^{n} - \frac{1}{\Delta t} u^{n-1} + \mathbf{B}u^n  \right]
 \end{equation}
-Written in a more general form:
-\begin{align}
-\underset{\alpha}{min}\,J\quad \text{subject to}\\
-\frac{\partial u}{\partial t} + R\left(u, \alpha \right) = 0
-\end{align}
+Then the derivative is:
+\begin{equation}
+\frac{\partial G^n\left( u^n,u^{n-1} \right)}{\partial u^n} = \mathbf{I} - \Delta\tau\left[ \frac{1}{\Delta t} \mathbf{I} + \mathbf{B} \right]
+\end{equation}
+The term as is stands in above formula then is:
+\begin{equation}
+\left( \frac{\partial G^n\left( u^n,u^{n-1} \right)}{\partial u^n} \right)^T \lambda^n = \lambda^n - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n + \mathbf{B}^T \lambda^n \right]
+\end{equation}
+\subsubsection*{3rd term}
+The following derivation is valid for $n = 1\,..\,N-1$. Starting with:
+\subsection{Update of the design variables}
 The optimization is performed using a gradient based approach, where the design variables are updated:
 \begin{equation}
 \alpha_{i+1} = \alpha_i - \epsilon \frac{d J}{d \alpha}

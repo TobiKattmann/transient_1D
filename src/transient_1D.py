@@ -125,6 +125,11 @@ class Transient_1D_Diffusion:
         for i in range(len(self.alpha)):
           obj += self.mesh.dx * self.alpha[i] * self.full_solution[n][i] 
         obj *= self.dt
+    
+    #Quick Fix
+    obj = 0.
+    for i in range(len(self.alpha)):
+      obj += self.alpha[i] * self.full_solution[self.Nt-1][i] 
 
     self.obj = obj
     return obj
@@ -133,8 +138,8 @@ class Transient_1D_Diffusion:
     """docstring TODO"""
     self.djdu = self.alpha
     self.u_init = np.zeros(self.mesh.numnodes)
-    self.u_init = -self.alpha#HERE
-    adjoint_solution, self.adjointRes = Numerics.perform_dualTimeStepping(self.Nt, self.dt, self.dt, self.NPt, self.u_init, self.u_left, self.u_right, self.get_AdjointResidual, reverse_timestepping_factor=-1.)
+    self.u_init = -1* -1 *self.alpha#HERE HERE changed additional -1
+    adjoint_solution, self.adjointRes = Numerics.perform_dualTimeStepping(self.Nt, self.dt, self.dt, self.NPt, self.u_init, self.u_left, self.u_right, self.get_AdjointResidual, reverse_timestepping_factor=1.)# here reverse time stepping factor is set to zero
     self.adjoint_solution = list(reversed(adjoint_solution))
 
   def get_AdjointResidual(self, l):
@@ -145,14 +150,15 @@ class Transient_1D_Diffusion:
       self.A1 = TMP[:, np.newaxis]*self.FD1.toarray()
       self.A2 = self.D[:, np.newaxis]*self.FD2.toarray()
       self.FirstTime_AdjointResidual = False
-    R =  -(- self.A1.T - self.A2.T)@l #- self.djdu.T HERE
+    #R =  -(- self.A1.T - self.A2.T)@l #- self.djdu.T HERE
+    R =  (- self.A1.T - self.A2.T)@l #- self.djdu.T HERE
     return R
 
   def calculateSensitivities(self):
     """docstring TODO"""
     dJda = np.zeros(self.mesh.numnodes)
     for timestep in range(self.Nt):
-      dRstarda  = self.calculate_dRstarda2(self.full_solution[timestep])
+      dRstarda = self.calculate_dRstarda2(self.full_solution[timestep])
       dJda += self.dt * (dRstarda.T@self.adjoint_solution[timestep]).T
     
     self.Dderivative = dJda
@@ -245,7 +251,7 @@ if __name__ == '__main__':
     VisuNew.Sensitivities(Sensitivities, show=False, save=True)
     VisuNew.DiffusionCoefficient(DiffusionCoefficients, show=False, save=True)
 
-  if True:
+  if False:
     #cleanup old files
     os.system('rm -v ../NEWimages-tobi-code/*')
 
@@ -307,7 +313,7 @@ if __name__ == '__main__':
     FD_sens.Plot_Sensitivities(mesh.X)
     FDderivative = copy.copy(dJda)
 
-  if False: # with Numerics2
+  if True: # with Numerics2
     num_nodes = 101
     Nt = 4000
     mesh = mesh_1D.mesh1D(begin=0, end=35, numnodes=num_nodes)
@@ -337,7 +343,7 @@ if __name__ == '__main__':
     #VisuNew.DiffusionCoefficient(DiffusionCoefficients, show=False, save=True)
     a =1
 
-  compareFDandAdjoint = False
+  compareFDandAdjoint = True
   if compareFDandAdjoint == True:
     visualization.compareFDandAdjointSensitivities(sim.mesh.X, AdjointDerivative, FDderivative)
     
