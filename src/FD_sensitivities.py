@@ -1,5 +1,6 @@
 import numpy as np
 from copy import copy
+import matplotlib.pyplot as plt
 
 import unittest
 
@@ -156,9 +157,7 @@ class FD_sensitivities:
     
   def Plot_Sensitivities(self, X_axis=None, show=False, save=True):
     """Plots and/or saves Sensitivitiy vector dJ/dalpha."""
-    import matplotlib.pyplot as plt
-    if X_axis==None: plt.plot(self.dJdalpha, label="FD_sensitivities")
-    else: plt.plot(X_axis ,self.dJdalpha, label="FD_sensitivities")
+    plt.plot(X_axis ,self.dJdalpha, label="FD_sensitivities")
 
     plt.title('Sensitivities')
     plt.xlabel('Design Variable')
