@@ -52,7 +52,7 @@ Second order spatial derivatives in the third term are discretized using central
 \end{equation}
 Both methods can be expressed as an operator in form of a matrix that is applied on the quantity that needs to be derived. Say, First order derivative is expressed as $\mathbf{A_1}$ and second order as $\mathbf{A_2}$:
 \begin{equation}
-\frac{\partial u}{\partial t} - \mathbf{A_1}d\mathbf{A_1}u - d \mathbf{A_2}u = 0
+\frac{\partial u}{\partial t} - -diag(\mathbf{A_1}d)\mathbf{A_1}u - -diag(d) \mathbf{A_2}u = 0
 \end{equation}
 As the spatial discretization is linear in $u$ we collect the terms and simplify towards a single fixed operator working on u:
 \begin{align}
@@ -67,7 +67,7 @@ For the MOL the spatial discretization terms are gathered in a Term $R(u,d)$.
 \end{align}
 The time discretization is done using first order backward differences:
 \begin{equation}
-\hat R (u,d) = \frac{u^{n} - u^{n-1}}{\Delta t} + R(u^n,d) = 0,\quad i= 1\,..\,N
+\hat R (u,d) = \frac{u^{n} - u^{n-1}}{\Delta t} + R(u^n,d) = 0,\quad n= 1\,..\,N
 \end{equation}
 With $N$ being the number of physical time steps. $u^0$ is given as the initial solution as part of the IBVP. The dual time stepping method is then used to converge the above equation to a steady state in fictitious time $\tau$. 
 \begin{equation}
@@ -75,23 +75,23 @@ With $N$ being the number of physical time steps. $u^0$ is given as the initial 
 \end{equation} 
 The explicit Euler method is used here. Each iteration of the pseudo time stepping is depicted with the subscript $p$:
 \begin{equation}
-\frac{u^n_{p+1}-u^n_{p}}{\Delta\tau} + \hat R(u^{n}_{p},d) = 0,\quad p= 1\,..\,m,\quad i= 1\,..\,N
+\frac{u^n_{p+1}-u^n_{p}}{\Delta\tau} + \hat R(u^{n}_{p},d) = 0,\quad p= 1\,..\,m,\quad n= 1\,..\,N
 \end{equation} 
 This can be rewritten in a fixed-point iteration form:
 \begin{align}
-u^n_{p+1} &= u^n_{p} - \Delta\tau\hat R(u^{n}_{p},d),\quad p= 1\,..\,m,\quad i= 1\,..\,N\\
-u^n_{p+1} &= G^n \left( u^n_p, u^{n-1} \right),\quad p= 1\,..\,m,\quad i= 1\,..\,N
+u^n_{p+1} &= u^n_{p} - \Delta\tau\hat R(u^{n}_{p},d),\quad p= 1\,..\,m,\quad n= 1\,..\,N\\
+u^n_{p+1} &= G^n \left( u^n_p, u^{n-1} \right),\quad p= 1\,..\,m,\quad n= 1\,..\,N
 \end{align}
 where $u^{n-1}$ is the converged solution of the previous time step. The fixed point iteration converges to the solution (fixed point) $u^n$:
 \begin{equation}
-u^n = G^n\left( u^n, u^{n-1} \right),\quad i= 1\,..\,N
+u^n = G^n\left( u^n, u^{n-1} \right),\quad n= 1\,..\,N
 \end{equation}
 %-------------------------------------------------------------------------------------------------------%
 \subsection{Optimization task}
 The optimization Task is:
 \begin{align}
 \underset{\alpha}{min}\quad J &= J(u^N), \\
-\text{subject to}\quad u^n &= G^n \left( u^n, u^{n-1}, \alpha \right),\quad i= 1\,..\,N
+\text{subject to}\quad u^n &= G^n \left( u^n, u^{n-1}, \alpha \right),\quad n= 1\,..\,N
 \end{align}
 The objective function is only dependent on the solution at the final time. This decision will have impact during the derivation of the adjoint equation, the derivative of the objective function with respect to the state variable will appear as an initial condition for the adjoint solution instead of a source term in the adjoint equation:
 \begin{equation}
@@ -99,6 +99,7 @@ J(u^N) = -(u^N)^T f(x)
 \end{equation}
 The negative sign indicates that the actually a maximization is desired by with that the widely used understanding that optimization equals minimization we are consistent with that. 
 The objective function can be understood as spatial integration of solution with a function $f$.
+%-------------------------------------------------------------------------------------------------------%
 \subsection{Lagrangian of the constrained optimization problem}
 The Lagrangian of the above formulated constrained optimization problem is:
 \begin{equation}
@@ -106,10 +107,11 @@ The Lagrangian of the above formulated constrained optimization problem is:
 \end{equation}
 with $\lambda^n$ the Lagrangian multiplier vector (or adjoint state vector) at time $n$. The first order optimality conditions are:
 \begin{align}
-\frac{\partial \mathcal{L}}{\partial \lambda^n} &= 0,\quad i= 1\,..\,N\quad\text{(state equations)}\\
-\frac{\partial \mathcal{L}}{\partial u^n} &= 0,\quad i= 1\,..\,N\quad\text{(adjoint equations)}\\
+\frac{\partial \mathcal{L}}{\partial \lambda^n} &= 0,\quad n= 1\,..\,N\quad\text{(state equations)}\\
+\frac{\partial \mathcal{L}}{\partial u^n} &= 0,\quad n= 1\,..\,N\quad\text{(adjoint equations)}\\
 \frac{\partial \mathcal{L}}{\partial \alpha} &= 0,\quad\text{(control equation)}\\
 \end{align}
+%-------------------------------------------------------------------------------------------------------%
 \subsection{Derivation of adjoint equations}
 With above formulated optimality conditions we can directly derive the adjoint equations in a fixed point form. Otherwise one would take the total derivative of $\mathcal{L}$ with respect to $\alpha$ and gather the terms containing du/da.
 \begin{equation}
@@ -120,6 +122,14 @@ Taking the transpose and reformatting in a fixed point form leads to:
 \lambda^{n}_{i+1} = \left( \frac{\partial J}{\partial u^n} \right)^T + \left( \frac{\partial G^n\left( u^n,u^{n-1} \right)}{\partial u^n}  \right)^T \lambda^n_i  +\left( \frac{\partial G^{n+1}\left( u^{n+1},u^{n} \right)}{\partial u^n}  \right)^T \lambda^{n+1}
 \end{equation}
 with subscript $i$ indicating inner iterations. In the following the each term is looked at in detail and derived from the actual primal discretization as until now everything is as general as it gets. An iteration procedure is the goal. 
+%-------------------------------------------------------------------------------------------------------%
+\subsubsection*{1st term}
+The first term ist zero except for the last time step $N$:
+\begin{align}
+\left( \frac{\partial J}{\partial u^n} \right)^T =& 0,\quad n = 1\,..\,N-1 \\
+\left( \frac{\partial J}{\partial u^N} \right)^T =& -f(x) 
+\end{align}
+%-------------------------------------------------------------------------------------------------------%
 \subsubsection*{2nd term}
 The following derivation is valid for $n = 1\,..\,N$. Starting with:
 \begin{equation}
@@ -137,8 +147,42 @@ The term as is stands in above formula then is:
 \begin{equation}
 \left( \frac{\partial G^n\left( u^n,u^{n-1} \right)}{\partial u^n} \right)^T \lambda^n = \lambda^n - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n + \mathbf{B}^T \lambda^n \right]
 \end{equation}
+%-------------------------------------------------------------------------------------------------------%
 \subsubsection*{3rd term}
 The following derivation is valid for $n = 1\,..\,N-1$. Starting with:
+\begin{equation}
+G^{n+1}\left( u^{n+1},u^{n} \right) = u^{n+1} - \Delta\tau\left[ \frac{1}{\Delta t} u^{n+1} - \frac{1}{\Delta t} u^{n} + R \left( u^{n+1} \right) \right]
+\end{equation}
+Then the derivative is:
+\begin{equation}
+\frac{\partial G^{n+1}\left( u^{n+1},u^{n} \right)}{\partial u^n} =  \Delta\tau\left[ -\frac{1}{\Delta t} \mathbf{I} \right]
+\end{equation}
+The term as is stands in above formula then is:
+\begin{equation}
+\left( \frac{\partial G^{n+1}\left( u^{n+1},u^{n} \right)}{\partial u^n} \right)^T \lambda^{n+1} =   \Delta\tau\left[ -\frac{1}{\Delta t} \lambda^{n+1} \right]
+\end{equation}
+The third term is non-existent at timestep $N$. To be more specific, there is no $G^{N+1}$ as $N$ is the last timestep of the primal. But from the first term there is a contribution to the adjoint fixed point iteration at time $N$. This can be interpreted as an initial condition:
+\begin{equation}
+\lambda^{N}_{i+1} = \left( \frac{\partial J}{\partial u^N} \right)^T + \left( \frac{\partial G^N\left( u^N,u^{N-1} \right)}{\partial u^N}  \right)^T \lambda^N_i  
+\end{equation}
+%-------------------------------------------------------------------------------------------------------%
+\subsubsection*{Recombined}
+The recovered fixed point iteration is:
+\begin{align}
+\lambda^{N}_{i+1} &= \left( \frac{\partial J}{\partial u^N} \right)^T + \left( \frac{\partial G^N\left( u^N,u^{N-1} \right)}{\partial u^N}  \right)^T \lambda^N_i ,\quad i = 1\,..\,m \\
+\lambda^{n}_{i+1} &=  \left( \frac{\partial G^n\left( u^n,u^{n-1} \right)}{\partial u^n}  \right)^T \lambda^n_i  +\left( \frac{\partial G^{n+1}\left( u^{n+1},u^{n} \right)}{\partial u^n}  \right)^T \lambda^{n+1} ,\quad i = 1\,..\,m,\quad n = N-1\,..\, 1
+\end{align}
+The index i counts the internal (pseudo) Now the terms are expanded:
+\begin{align}
+\lambda^{N}_{i+1} &= -f(x) + \lambda^n_i - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n_i + \mathbf{B}^T \lambda^n_i \right] ,\quad i = 1\,..\,m \\
+\lambda^{n}_{i+1} &= \lambda^n_i - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n_i + \mathbf{B}^T \lambda^n_i \right] + \Delta\tau\left[ -\frac{1}{\Delta t} \lambda^{n+1} \right]  ,\quad i = 1\,..\,m ,\quad n = N-1\,..\, 1
+\end{align}
+Reformulating:
+\begin{align}
+\lambda^{N}_{i+1} &= -f(x) + \lambda^n - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n - \frac{1}{\Delta t} \left( - \frac{\Delta t}{\Delta\tau} f(x) \right) + \mathbf{B}^T \lambda^n \right]  \\
+\lambda^{n}_{i+1} &= \lambda^n - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n - \frac{1}{\Delta t} \lambda^{n+1} + \mathbf{B}^T \lambda^n \right]  ,\quad n = N-1\,..\, 1
+\end{align}
+%-------------------------------------------------------------------------------------------------------%
 \subsection{Update of the design variables}
 The optimization is performed using a gradient based approach, where the design variables are updated:
 \begin{equation}
