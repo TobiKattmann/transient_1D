@@ -2,7 +2,7 @@ import numpy as np
 import copy
 
 import visualization
-
+#-------------------------------------------------------------------------------_-------#
 class Optimizer:
   """Performs multiple Design Iterations and stores given Visualizations."""
   def __init__(self, evaluateObjectiveFunction, computeDerivative, initial_DesignVars, num_DesignCycles, factorDesignVarUpdate):
@@ -45,14 +45,14 @@ class Optimizer:
     self.VisualizeOptimizerVars(sim)
 
   def updateDesignVars(self, alpha, dJdalpha):
-    """docstring.
+    """If the factor is positive, it is a minimizer.
 
     Args:
       dJdalpha (array of floats): Derivative of obj.func. wrt to Design variables
     Returns:
       None
     """
-    alpha += self.factorDesignVarUpdate * dJdalpha
+    alpha -= self.factorDesignVarUpdate * dJdalpha
     return alpha
 
   def VisualizeOptimizerVars(self, sim):
@@ -72,5 +72,6 @@ class Optimizer:
     VisuNew.Animate_Primal_and_Adjoint(show=False, save=False)
     VisuNew.PrimalAdjointSensitivitiesDiffusivity(show=False, save=True)
 
+#-------------------------------------------------------------------------------_-------#
 if __name__ == '__main__':
-  print("Nothing to excecute here. But there is no error either, that's fine.")
+  pass

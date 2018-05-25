@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import pandas as pd
 
 class Visualization:
   def __init__(self, Sim):
@@ -209,8 +210,8 @@ def compareFDandAdjointSensitivities(mesh, AdjointDerivative, FDDerivative, show
   """Docstring."""
   folderpath = "./images/"
 
-  plt.plot(mesh, AdjointDerivative/np.amax(np.absolute(AdjointDerivative)), label="Adjoint Sens")
-  plt.plot(mesh, FDDerivative/np.amax(np.absolute(FDDerivative)), label="FD Sens")
+  plt.plot(mesh, AdjointDerivative, marker='x', label="Adjoint Sens")
+  plt.plot(mesh, FDDerivative, marker='.', label="FD Sens")
 
   plt.title("normed Sensitivities")
   plt.xlabel("x")
@@ -284,4 +285,4 @@ class DEBUG_Visualization:
     plt.close('all')
 
 if __name__ == '__main__':
-  print("Nothing to excecute here. But there is no error either, that's fine.")
+  pass

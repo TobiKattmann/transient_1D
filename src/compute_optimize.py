@@ -8,6 +8,7 @@ import optimizer
 #cleanup old files
 #os.system('rm -v ../NEWimages-tobi-code/*')
 
+#---------------------------------------------------------------------------------------#
 print("Optimzer called")
 num_nodes = 101
 def obj(D):
@@ -32,5 +33,6 @@ obj_handle = lambda alpha: obj(alpha)
 derivative_handle = lambda sim: derivative(sim)
 initial_DesignVars = np.ones(num_nodes)*2.
 
+#---------------------------------------------------------------------------------------#
 opt = optimizer.Optimizer(obj_handle, derivative_handle, initial_DesignVars, num_DesignCycles=3, factorDesignVarUpdate=10)
 opt.optimize()

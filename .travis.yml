@@ -3,5 +3,8 @@ python:
   - "3.6"
 install:
   - pip install -r requirements.txt
+before_script:
+  - cd unittests
 script:
-  - python ./src/transient_1D_unittests.py
+  - python unittests_transient_1D.py
+  - python unittests_FD_sensitivities.py

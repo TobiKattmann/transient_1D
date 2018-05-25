@@ -2,6 +2,10 @@
 sphinx_documentation
 src/transient.ipynb
 
+# general
+*.swp
+*.csv
+
 # Output
 *.png
 
@@ -14,5 +18,4 @@ src/transient.ipynb
 *.gz
 
 # python specific
-*.swp
 __pycache__

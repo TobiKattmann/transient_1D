@@ -1,9 +1,9 @@
 import numpy as np
 from copy import copy
 import matplotlib.pyplot as plt
+import pandas as pd
 
-import unittest
-
+#---------------------------------------------------------------------------------------#
 """
 This class computes 1st derivatives (gradients) of a scalar function
 wrt to an input vector of size n.
@@ -11,55 +11,8 @@ wrt to an input vector of size n.
 Translated for CFD-optimization: computes the derivative of a scalar objective 
 function wrt to the design variables which can be a vector of size n.
 """
-#########################################################################################
 
-class Tests_FD_sensitivities(unittest.TestCase):
-  """Unit Tests for FD_sensitivities."""
-  def test_linear_function(self):
-    def linearFunction(alpha):
-      """Simple linear func J = 0*x0+1*x1+2*x2+3*x3, alpha=x, dJ/dalpha = (0 1 2 3) for every x."""
-      J = 0
-      factors = np.array([0,1,2,3])
-      for alpha_i, factor in zip(alpha, factors):
-        J += factor * alpha_i
-      return J
-    linearFunction_handle = lambda alpha: linearFunction(alpha)  
-    # input zeros
-    design_vars = np.zeros(4)
-    FD_sens = FD_sensitivities(linearFunction_handle, design_vars, 'forward')
-    numerical_result_1 = FD_sens.calculateSensitivities()
-    analytical_result_1 = np.array([0., 1., 2., 3.])
-    self.assertTrue(np.allclose(numerical_result_1, analytical_result_1))
-    # input ones
-    design_vars = np.ones(4)
-    FD_sens = FD_sensitivities(linearFunction_handle, design_vars, 'forward')
-    numerical_result_2 = FD_sens.calculateSensitivities()
-    analytical_result_2 = np.array([0., 1., 2., 3.])
-    self.assertTrue(np.allclose(numerical_result_2, analytical_result_2))
-  
-  def test_quadratic_function(self):
-    def linearFunction(alpha):
-      """Simple linear func J = 0*x0+1*x1+2*x2+3*x3, alpha=x, dJ/dalpha = (0 1 2 3) for every x."""
-      J = 0
-      factors = np.array([0,1,2,3])
-      for alpha_i, factor in zip(alpha, factors):
-        J += factor * alpha_i**2
-      return J
-    linearFunction_handle = lambda alpha: linearFunction(alpha)  
-    # input zeros
-    design_vars = np.zeros(4)
-    FD_sens = FD_sensitivities(linearFunction_handle, design_vars, 'central')
-    numerical_result_1 = FD_sens.calculateSensitivities()
-    analytical_result_1 = np.array([0., 0., 0., 0.])
-    self.assertTrue(np.allclose(numerical_result_1, analytical_result_1))
-    # input ones
-    design_vars = np.ones(4)
-    FD_sens = FD_sensitivities(linearFunction_handle, design_vars, 'central')
-    numerical_result_2 = FD_sens.calculateSensitivities()
-    analytical_result_2 = np.array([0., 2., 4., 6.])
-    self.assertTrue(np.allclose(numerical_result_2, analytical_result_2))
-
-#########################################################################################
+#---------------------------------------------------------------------------------------#
 class FD_sensitivities:
   def __init__(self, evaluateObjFunc,  alpha, gradientMethod='forward'):
     """Necessary imputs are method for obj.func. evaluation and initial design vars.
@@ -71,12 +24,14 @@ class FD_sensitivities:
     """
     self.evaluateObjFunc = evaluateObjFunc # lambda function handle
     self.alpha = alpha
-    self.delta_alpha = np.max([0.001, 0.001*np.mean(np.absolute(alpha))] ) # TODO: more sophisticated method for dalpha computation necessary
-    self.delta_alpha = 0.0001
-    print("delta: ",self.delta_alpha)
     self.gradientMethod = gradientMethod # forward, central
     if gradientMethod == 'forward':
       self.J_init = self.evaluateObjFunc(self.alpha)
+
+    self.delta_alpha = np.max([0.001, 0.001*np.mean(np.absolute(alpha))] ) # TODO: more sophisticated method for dalpha computation necessary
+    self.delta_alpha = 0.0001
+    #print("delta: ",self.delta_alpha)
+    self.print_derivatives = False
     
   def calculateSensitivities(self):
     """Main driver of the class, calculates dJdalpha.
@@ -88,7 +43,7 @@ class FD_sensitivities:
     
     for i in range(len(self.alpha)):
       dJdalpha[i] = self.computeSingleSensitivity(i)
-      if True:
+      if self.print_derivatives:
         print("Design Variable: ", i, "| dJ/da_i= ", dJdalpha[i])
 
     self.dJdalpha = copy(dJdalpha) 
@@ -168,6 +123,15 @@ class FD_sensitivities:
     if show: plt.show()
     plt.close("all")
     plt.plot()
-#########################################################################################
+
+  def writeSensToFile(self, Xaxis):
+    """Write the Sens-data to .csv"""
+    filename = 'FD_sens.csv'
+    data = np.stack([Xaxis, self.dJdalpha], axis=1)
+    df = pd.DataFrame(data, columns=['x','dJdalpha'])
+    df.to_csv(filename)
+    print("Sensitivity data written to: ", filename )
+    
+#---------------------------------------------------------------------------------------#
 if __name__ == '__main__':
-  unittest.main() 
+  pass

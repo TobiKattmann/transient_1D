@@ -35,7 +35,34 @@ u(x_{start},t)&=& u_{start}, \\
 u(x_{end},t) &=& u_{end}.
 \end{eqnarray}
 \subsubsection{Analaytical solution (fundamental sol)}
-TODO
+In order to validate the primal solution one can use the fundamental solution to the Diffusion problem. The following is derived with the help of MIT MATH 18.152 notes \href{http://math.mit.edu/~jspeck/18.152_Fall2011/Lecture%20notes/18152%20lecture%20notes%20-%205.pdf}{Link} by Prof Speck. The integral at the end is solved with wolframalpha.com \href{https://sandbox.open.wolframcloud.com/app/objects/a62c75f0-0ef8-44e4-8ba9-4eedb585f643#sidebar=compute}{Link}.
+	
+The 1D heat equation in our case writes:
+\begin{equation}
+u_t-u_{xx} = 0,\quad u(x,0) = -exp\left( -(y-15)^2 \right)
+\end{equation}
+Starting from Theorem 1.1 from the course notes one simply needs to compute equation (1.1.12) which is done here by using wolframalpha and $g(y)=exp\left( -y^2 \right)$. This gives the solution:
+\begin{equation}
+u(x,t) = \frac{1}{(4\pi d t)^{1/2}} \sqrt{\pi} \sqrt{\frac{a}{1+a}}exp\left( -\frac{x^2}{1+a} \right),\quad a= 4dt
+\end{equation}
+For $g(y)=exp\left( -(y-15)^2 \right)$ one has:
+\begin{align}
+u(x,t) &= \frac{1}{(4\pi d t)^{1/2}} \sqrt{\pi} \sqrt{\frac{a}{1+a}}exp\left( -\frac{(x-15)^2}{1+a} \right),\quad a= 4dt \\
+u(x,t) &= \frac{1}{\sqrt{1+4dt}}exp\left(-\frac{(x-15)^2}{1+4dt} \right))
+\end{align}
+And for later use, the continuous adjoint equation is:
+\begin{equation}
+-\lambda_t-\lambda_{xx} = 0,\quad \lambda(x,T) = -exp\left( -(y-20)^2 \right)
+\end{equation}
+When readjusting the temporal propagation one gets:
+\begin{equation}
+\lambda_t-\lambda_{xx} = 0,\quad \lambda(x,0) = -exp\left( -(y-20)^2 \right)
+\end{equation}
+which again can be solved with the presented approach using $g(y)=-exp\left( -(y-20)^2 \right)$:
+\begin{equation}
+\lambda(x,t) = \frac{-1}{\sqrt{1+4dt}}exp\left(-\frac{(x-20)^2}{1+4dt} \right))
+\end{equation}
+
 %-------------------------------------------------------------------------------------------------------%
 \subsection{Discretization of primal}
 We want to solve the transient 1D Diffusion equation numerically with Finite Differences (FD). We will use the Method Of Lines (MOL) with a dual time stepping approach. Therefore we need to discretize the spatial and temporal domain such that $x=(x_i), i=0..m-1$ () and $t=(t_i), i=0 .. n-1$. That means we have $m$ grid points and $m-2$ DOF's as we have Dirichlet boundary conditions on the two outer grid points. There are $n$ time level where $n-1$ have to be computed as the initial solution is given. We rewrite the PDE by using the product rule of differentiation:
@@ -52,7 +79,7 @@ Second order spatial derivatives in the third term are discretized using central
 \end{equation}
 Both methods can be expressed as an operator in form of a matrix that is applied on the quantity that needs to be derived. Say, First order derivative is expressed as $\mathbf{A_1}$ and second order as $\mathbf{A_2}$:
 \begin{equation}
-\frac{\partial u}{\partial t} - -diag(\mathbf{A_1}d)\mathbf{A_1}u - -diag(d) \mathbf{A_2}u = 0
+\frac{\partial u}{\partial t} - -diag(\mathbf{A_1}d)\mathbf{A_1}u - diag(d) \mathbf{A_2}u = 0
 \end{equation}
 As the spatial discretization is linear in $u$ we collect the terms and simplify towards a single fixed operator working on u:
 \begin{align}
@@ -103,7 +130,7 @@ The objective function can be understood as spatial integration of solution with
 \subsection{Lagrangian of the constrained optimization problem}
 The Lagrangian of the above formulated constrained optimization problem is:
 \begin{equation}
-\mathcal{L} = J\left( u^N \right) - \sum_{n=1}^{N} \left( \lambda^n \right)^T\left( U^n - G^n \left( u^n, u^{n-1}, \alpha \right) \right)
+\mathcal{L} = J\left( u^N \right) - \sum_{n=1}^{N} \left( \lambda^n \right)^T\left( u^n - G^n \left( u^n, u^{n-1}, \alpha \right) \right)
 \end{equation}
 with $\lambda^n$ the Lagrangian multiplier vector (or adjoint state vector) at time $n$. The first order optimality conditions are:
 \begin{align}
@@ -172,16 +199,49 @@ The recovered fixed point iteration is:
 \lambda^{N}_{i+1} &= \left( \frac{\partial J}{\partial u^N} \right)^T + \left( \frac{\partial G^N\left( u^N,u^{N-1} \right)}{\partial u^N}  \right)^T \lambda^N_i ,\quad i = 1\,..\,m \\
 \lambda^{n}_{i+1} &=  \left( \frac{\partial G^n\left( u^n,u^{n-1} \right)}{\partial u^n}  \right)^T \lambda^n_i  +\left( \frac{\partial G^{n+1}\left( u^{n+1},u^{n} \right)}{\partial u^n}  \right)^T \lambda^{n+1} ,\quad i = 1\,..\,m,\quad n = N-1\,..\, 1
 \end{align}
-The index i counts the internal (pseudo) Now the terms are expanded:
+The index i counts the internal (pseudo) iterations. Now the terms are expanded:
 \begin{align}
 \lambda^{N}_{i+1} &= -f(x) + \lambda^n_i - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n_i + \mathbf{B}^T \lambda^n_i \right] ,\quad i = 1\,..\,m \\
 \lambda^{n}_{i+1} &= \lambda^n_i - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n_i + \mathbf{B}^T \lambda^n_i \right] + \Delta\tau\left[ -\frac{1}{\Delta t} \lambda^{n+1} \right]  ,\quad i = 1\,..\,m ,\quad n = N-1\,..\, 1
 \end{align}
 Reformulating:
 \begin{align}
-\lambda^{N}_{i+1} &= -f(x) + \lambda^n - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n - \frac{1}{\Delta t} \left( - \frac{\Delta t}{\Delta\tau} f(x) \right) + \mathbf{B}^T \lambda^n \right]  \\
+\lambda^{N}_{i+1} &= \lambda^n - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n - \frac{1}{\Delta t} \left( - \frac{\Delta t}{\Delta\tau} f(x) \right) + \mathbf{B}^T \lambda^n \right]  \\
 \lambda^{n}_{i+1} &= \lambda^n - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n - \frac{1}{\Delta t} \lambda^{n+1} + \mathbf{B}^T \lambda^n \right]  ,\quad n = N-1\,..\, 1
 \end{align}
+The derivation of the obj func at state $N$ can therefore be seen as an initial condition to the time stepping of the adjoint:
+\begin{equation}
+\lambda^{N+1} = -f(x),
+\end{equation}
+considering that we choose $\Delta\tau=\Delta t$ which is valid if the fixed point is reached.
+\subsubsection*{Gradient from adjoints}
+Now that the adjoint state is known for each time step the gradient of the Lagrangian wrt to the design variables can be computed:
+\begin{equation}
+\frac{d \mathcal L}{d \alpha} = \frac{\partial J}{\partial \alpha} + \sum_{n=1}^{N} \left( \lambda^n \right)^T \frac{\partial G^n}{\partial \alpha}.
+\end{equation}
+In our case the first term equals to zero such that:
+\begin{equation}
+\frac{d \mathcal L}{d \alpha} =  \sum_{n=1}^{N} \left( \lambda^n \right)^T \frac{\partial G^n}{\partial \alpha},
+\end{equation}
+where the last term computes to:
+\begin{align}
+\frac{\partial G^n}{\partial \alpha} &= \frac{\partial}{\partial \alpha}\left[ u^n - \Delta\tau\left[ \frac{1}{\Delta t} u^{n} - \frac{1}{\Delta t} u^{n-1} + \mathbf{B}u^n  \right] \right] \\
+\frac{\partial G^n}{\partial \alpha} &= \frac{\partial}{\partial \alpha}\left[ u^n - \Delta\tau\left[ \frac{1}{\Delta t} u^{n} - \frac{1}{\Delta t} u^{n-1} -diag(\mathbf{A_1}d)\mathbf{A_1}u - diag(d) \mathbf{A_2}u  \right] \right]\\
+\frac{\partial G^n}{\partial \alpha} &= \frac{\partial}{\partial \alpha}\left[ u^n - \Delta\tau\left[ \frac{1}{\Delta t} u^{n} - \frac{1}{\Delta t} u^{n-1} -diag(\mathbf{A_1}u)\mathbf{A_1}d - diag(\mathbf{A_2}u) d  \right] \right] \\
+\frac{\partial G^n}{\partial \alpha} &= -\Delta\tau \left(-diag(\mathbf{A_1}u)\mathbf{A_1} - diag(\mathbf{A_2}u) \right)
+\end{align}
+Note that our above written gradient of the Lagrangian is a row vector. To get a column vector we take the transpose of the equation:
+\begin{equation}
+\frac{d \mathcal L}{d \alpha}^T =  \sum_{n=1}^{N} \left( \frac{\partial G^n}{\partial \alpha} \right)^T \lambda^n,
+\end{equation}
+Inserting the formulation for the fixed point iterator yields:
+\begin{equation}
+\frac{d \mathcal L}{d \alpha}^T =  \sum_{n=1}^{N} \left[-\Delta\tau \left( -diag(\mathbf{A_1}u)\mathbf{A_1} - diag(\mathbf{A_2}u) \right) \right]^T \lambda^n,
+\end{equation}
+And by construction via Lagrangian we have the sensitivities of the objective function wrt to the design variables:
+\begin{equation}
+\frac{d J}{d \alpha} =\frac{d \mathcal L}{d \alpha}
+\end{equation}
 %-------------------------------------------------------------------------------------------------------%
 \subsection{Update of the design variables}
 The optimization is performed using a gradient based approach, where the design variables are updated:

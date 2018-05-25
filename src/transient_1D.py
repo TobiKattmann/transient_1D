@@ -13,6 +13,8 @@ import FD_sensitivities
 import mesh_1D 
 import visualization
 import optimizer
+
+#---------------------------------------------------------------------------------------#
 """This codes solves the 1D heat eq: 
 PDE: dT/dt - dD(x)/dx*dT/dx  - D(x)*d^2T/dx^2 = 0, 
 BC: T(x_left,.)=T0, T(x_right,.)=T1, 
@@ -20,7 +22,7 @@ IC: T(.,t=0)=T_init
 
 And the respective Adjoint equation.
 """
-#========================================================================================#
+#---------------------------------------------------------------------------------------#
 class Numerics:
   """docstring TODO"""
 
@@ -79,6 +81,7 @@ class Numerics:
 
     return primal_solution, flowRes    
 
+#---------------------------------------------------------------------------------------#
 class Transient_1D_Diffusion:
   """docstring."""
   def __init__(self, mesh, D, init, u_right, u_left, Nt, alpha):
@@ -98,6 +101,10 @@ class Transient_1D_Diffusion:
     self.FD2 = Numerics.get_FD_Operator_cental_2nd(self.mesh.numnodes, self.mesh.dx)
     self.FirstTime_AdjointResidual = True
     self.FirstTime_PrimalResidual = True
+
+  def calculateTimestep(self):
+    """docstring."""
+    pass
 
   def calculatePrimal(self):
     """docstring."""
@@ -120,25 +127,18 @@ class Transient_1D_Diffusion:
   def calculateObjectiveFunction(self):
     """docstring TODO"""
     obj = 0.
-    for n in range(self.Nt):
-      if n == self.Nt-1:#HERE
-        for i in range(len(self.alpha)):
-          obj += self.mesh.dx * self.alpha[i] * self.full_solution[n][i] 
-        obj *= self.dt
-    
-    #Quick Fix
-    obj = 0.
     for i in range(len(self.alpha)):
-      obj += self.alpha[i] * self.full_solution[self.Nt-1][i] 
+      obj += - self.alpha[i] * self.full_solution[self.Nt-1][i] 
 
     self.obj = obj
     return obj
 
+#---------------------------------------------------------------------------------------#
   def calculateAdjoint(self):
     """docstring TODO"""
     self.djdu = self.alpha
     self.u_init = np.zeros(self.mesh.numnodes)
-    self.u_init = 1* -1 *self.alpha#HERE HERE changed additional -1
+    self.u_init = -1.0 * self.alpha
     adjoint_solution, self.adjointRes = Numerics.perform_dualTimeStepping(self.Nt, self.dt, self.dt, self.NPt, self.u_init, self.u_left, self.u_right, self.get_AdjointResidual2, reverse_timestepping_factor=1.)# here reverse time stepping factor is set to zero
     self.adjoint_solution = list(reversed(adjoint_solution))
 
@@ -164,7 +164,7 @@ class Transient_1D_Diffusion:
     dJda = np.zeros(self.mesh.numnodes)
     for timestep in range(self.Nt):
       dRstarda = self.calculate_dRstarda(self.full_solution[timestep])
-      dJda += self.dt * (dRstarda.T@self.adjoint_solution[timestep]).T
+      dJda += dRstarda.T@self.adjoint_solution[timestep] # self.dt is in fact dtau
     
     self.Dderivative = dJda
 
@@ -185,17 +185,10 @@ class Transient_1D_Diffusion:
     TMP = self.FD1@primal_solution
     dRstarda = - TMP[:, np.newaxis]*self.FD1.toarray() - np.diag(self.FD2@primal_solution)
     
-    return dRstarda
+    return -self.dt * dRstarda
 
-  def calculateTimestep(self):
-    """docstring."""
-    pass
-  
-#############################################################################################
+#---------------------------------------------------------------------------------------#
 if __name__ == '__main__':
   pass
-  compareFDandAdjoint = False
-  if compareFDandAdjoint == True:
-    visualization.compareFDandAdjointSensitivities(sim.mesh.X, AdjointDerivative, FDderivative)
     
 
