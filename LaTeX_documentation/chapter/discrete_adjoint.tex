@@ -1,0 +1,125 @@
+\section{Discrete Adjoint}
+The derivation of the discrete adjoint for 1D diffusion equation is also shown in \cite{li2004adjoint} together with some considerations regarding the continuous adjoint.
+%-------------------------------------------------------------------------------------------------------%
+\subsection{Lagrangian of the constrained optimization problem}
+The Lagrangian of the above formulated constrained optimization problem is:
+\begin{equation}
+\mathcal{L} = J\left( u^N \right) - \sum_{n=1}^{N} \left( \lambda^n \right)^T\left( u^n - G^n \left( u^n, u^{n-1}, \alpha \right) \right)
+\end{equation}
+with $\lambda^n$ the Lagrangian multiplier vector (or adjoint state vector) at time $n$. The first order optimality conditions are:
+\begin{align}
+\frac{\partial \mathcal{L}}{\partial \lambda^n} &= 0,\quad n= 1\,..\,N\quad\text{(state equations)}\\
+\frac{\partial \mathcal{L}}{\partial u^n} &= 0,\quad n= 1\,..\,N\quad\text{(adjoint equations)}\\
+\frac{\partial \mathcal{L}}{\partial \alpha} &= 0,\quad\text{(control equation)}\\
+\end{align}
+%-------------------------------------------------------------------------------------------------------%
+\subsection{Derivation of adjoint equations}
+With above formulated optimality conditions we can directly derive the adjoint equations in a fixed point form. Otherwise one would take the total derivative of $\mathcal{L}$ with respect to $\alpha$ and gather the terms containing du/da.
+\begin{equation}
+\frac{\partial \mathcal{L}}{\partial u^n} = \frac{\partial J}{\partial u^n} - \left( \lambda^n \right)^T +\left( \lambda^n \right)^T \frac{\partial G^n \left( u^n,u^{n-1} \right)}{\partial u^n} +\left( \lambda^{n+1} \right)^T \frac{\partial G^{n+1}\left( u^{n+1},u^{n} \right)}{\partial u^n}  = 0
+\end{equation}
+Taking the transpose and reformatting in a fixed point form leads to:
+\begin{equation}
+\lambda^{n}_{i+1} = \left( \frac{\partial J}{\partial u^n} \right)^T + \left( \frac{\partial G^n\left( u^n,u^{n-1} \right)}{\partial u^n}  \right)^T \lambda^n_i  +\left( \frac{\partial G^{n+1}\left( u^{n+1},u^{n} \right)}{\partial u^n}  \right)^T \lambda^{n+1}
+\end{equation}
+with subscript $i$ indicating inner iterations. In the following the each term is looked at in detail and derived from the actual primal discretization as until now everything is as general as it gets. An iteration procedure is the goal. 
+%-------------------------------------------------------------------------------------------------------%
+\subsubsection*{1st term}
+The first term ist zero except for the last time step $N$:
+\begin{align}
+\left( \frac{\partial J}{\partial u^n} \right)^T =& 0,\quad n = 1\,..\,N-1 \\
+\left( \frac{\partial J}{\partial u^N} \right)^T =& -f(x) 
+\end{align}
+%-------------------------------------------------------------------------------------------------------%
+\subsubsection*{2nd term}
+The following derivation is valid for $n = 1\,..\,N$. Starting with:
+\begin{equation}
+G^n\left( u^n,u^{n-1} \right) = u^n - \Delta\tau\left[ \frac{1}{\Delta t} u^{n} - \frac{1}{\Delta t} u^{n-1} + R \left( u^n \right) \right]
+\end{equation}
+wherein we can express the spatial residual very simple as a linear matrix-vector product:
+\begin{equation}
+G^n\left( u^n,u^{n-1} \right) = u^n - \Delta\tau\left[ \frac{1}{\Delta t} u^{n} - \frac{1}{\Delta t} u^{n-1} + \mathbf{B}u^n  \right]
+\end{equation}
+Then the derivative is:
+\begin{equation}
+\frac{\partial G^n\left( u^n,u^{n-1} \right)}{\partial u^n} = \mathbf{I} - \Delta\tau\left[ \frac{1}{\Delta t} \mathbf{I} + \mathbf{B} \right]
+\end{equation}
+The term as is stands in above formula then is:
+\begin{equation}
+\left( \frac{\partial G^n\left( u^n,u^{n-1} \right)}{\partial u^n} \right)^T \lambda^n = \lambda^n - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n + \mathbf{B}^T \lambda^n \right]
+\end{equation}
+%-------------------------------------------------------------------------------------------------------%
+\subsubsection*{3rd term}
+The following derivation is valid for $n = 1\,..\,N-1$. Starting with:
+\begin{equation}
+G^{n+1}\left( u^{n+1},u^{n} \right) = u^{n+1} - \Delta\tau\left[ \frac{1}{\Delta t} u^{n+1} - \frac{1}{\Delta t} u^{n} + R \left( u^{n+1} \right) \right]
+\end{equation}
+Then the derivative is:
+\begin{equation}
+\frac{\partial G^{n+1}\left( u^{n+1},u^{n} \right)}{\partial u^n} =  \Delta\tau\left[ -\frac{1}{\Delta t} \mathbf{I} \right]
+\end{equation}
+The term as is stands in above formula then is:
+\begin{equation}
+\left( \frac{\partial G^{n+1}\left( u^{n+1},u^{n} \right)}{\partial u^n} \right)^T \lambda^{n+1} =   \Delta\tau\left[ -\frac{1}{\Delta t} \lambda^{n+1} \right]
+\end{equation}
+The third term is non-existent at timestep $N$. To be more specific, there is no $G^{N+1}$ as $N$ is the last timestep of the primal. But from the first term there is a contribution to the adjoint fixed point iteration at time $N$. This can be interpreted as an initial condition:
+\begin{equation}
+\lambda^{N}_{i+1} = \left( \frac{\partial J}{\partial u^N} \right)^T + \left( \frac{\partial G^N\left( u^N,u^{N-1} \right)}{\partial u^N}  \right)^T \lambda^N_i  
+\end{equation}
+%-------------------------------------------------------------------------------------------------------%
+\subsubsection*{Recombined}
+The recovered fixed point iteration is:
+\begin{align}
+\lambda^{N}_{i+1} &= \left( \frac{\partial J}{\partial u^N} \right)^T + \left( \frac{\partial G^N\left( u^N,u^{N-1} \right)}{\partial u^N}  \right)^T \lambda^N_i ,\quad i = 1\,..\,m \\
+\lambda^{n}_{i+1} &=  \left( \frac{\partial G^n\left( u^n,u^{n-1} \right)}{\partial u^n}  \right)^T \lambda^n_i  +\left( \frac{\partial G^{n+1}\left( u^{n+1},u^{n} \right)}{\partial u^n}  \right)^T \lambda^{n+1} ,\quad i = 1\,..\,m,\quad n = N-1\,..\, 1
+\end{align}
+The index i counts the internal (pseudo) iterations. Now the terms are expanded:
+\begin{align}
+\lambda^{N}_{i+1} &= -f(x) + \lambda^n_i - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n_i + \mathbf{B}^T \lambda^n_i \right] ,\quad i = 1\,..\,m \\
+\lambda^{n}_{i+1} &= \lambda^n_i - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n_i + \mathbf{B}^T \lambda^n_i \right] + \Delta\tau\left[ -\frac{1}{\Delta t} \lambda^{n+1} \right]  ,\quad i = 1\,..\,m ,\quad n = N-1\,..\, 1
+\end{align}
+Reformulating:
+\begin{align}
+\lambda^{N}_{i+1} &= \lambda^n - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n - \frac{1}{\Delta t} \left( - \frac{\Delta t}{\Delta\tau} f(x) \right) + \mathbf{B}^T \lambda^n \right]  \\
+\lambda^{n}_{i+1} &= \lambda^n - \Delta\tau\left[ \frac{1}{\Delta t} \lambda^n - \frac{1}{\Delta t} \lambda^{n+1} + \mathbf{B}^T \lambda^n \right]  ,\quad n = N-1\,..\, 1
+\end{align}
+The derivation of the obj func at state $N$ can therefore be seen as an initial condition to the time stepping of the adjoint:
+\begin{equation}
+\lambda^{N+1} = -f(x),
+\end{equation}
+considering that we choose $\Delta\tau=\Delta t$ which is valid if the fixed point is reached.
+\subsubsection*{Gradient from adjoints}
+Now that the adjoint state is known for each time step the gradient of the Lagrangian wrt to the design variables can be computed:
+\begin{equation}
+\frac{d \mathcal L}{d \alpha} = \frac{\partial J}{\partial \alpha} + \sum_{n=1}^{N} \left( \lambda^n \right)^T \frac{\partial G^n}{\partial \alpha}.
+\end{equation}
+In our case the first term equals to zero such that:
+\begin{equation}
+\frac{d \mathcal L}{d \alpha} =  \sum_{n=1}^{N} \left( \lambda^n \right)^T \frac{\partial G^n}{\partial \alpha},
+\end{equation}
+where the last term computes to:
+\begin{align}
+\frac{\partial G^n}{\partial \alpha} &= \frac{\partial}{\partial \alpha}\left[ u^n - \Delta\tau\left[ \frac{1}{\Delta t} u^{n} - \frac{1}{\Delta t} u^{n-1} + \mathbf{B}u^n  \right] \right] \\
+\frac{\partial G^n}{\partial \alpha} &= \frac{\partial}{\partial \alpha}\left[ u^n - \Delta\tau\left[ \frac{1}{\Delta t} u^{n} - \frac{1}{\Delta t} u^{n-1} -diag(\mathbf{A_1}d)\mathbf{A_1}u - diag(d) \mathbf{A_2}u  \right] \right]\\
+\frac{\partial G^n}{\partial \alpha} &= \frac{\partial}{\partial \alpha}\left[ u^n - \Delta\tau\left[ \frac{1}{\Delta t} u^{n} - \frac{1}{\Delta t} u^{n-1} -diag(\mathbf{A_1}u)\mathbf{A_1}d - diag(\mathbf{A_2}u) d  \right] \right] \\
+\frac{\partial G^n}{\partial \alpha} &= -\Delta\tau \left(-diag(\mathbf{A_1}u)\mathbf{A_1} - diag(\mathbf{A_2}u) \right)
+\end{align}
+Note that our above written gradient of the Lagrangian is a row vector. To get a column vector we take the transpose of the equation:
+\begin{equation}
+\frac{d \mathcal L}{d \alpha}^T =  \sum_{n=1}^{N} \left( \frac{\partial G^n}{\partial \alpha} \right)^T \lambda^n,
+\end{equation}
+Inserting the formulation for the fixed point iterator yields:
+\begin{equation}
+\frac{d \mathcal L}{d \alpha}^T =  \sum_{n=1}^{N} \left[-\Delta\tau \left( -diag(\mathbf{A_1}u)\mathbf{A_1} - diag(\mathbf{A_2}u) \right) \right]^T \lambda^n,
+\end{equation}
+And by construction via Lagrangian we have the sensitivities of the objective function wrt to the design variables:
+\begin{equation}
+\frac{d J}{d \alpha} =\frac{d \mathcal L}{d \alpha}
+\end{equation}
+%-------------------------------------------------------------------------------------------------------%
+\subsection{Update of the design variables}
+The optimization is performed using a gradient based approach, where the design variables are updated:
+\begin{equation}
+\alpha_{i+1} = \alpha_i - \epsilon \frac{d J}{d \alpha}
+\end{equation}
+The approach to calculate the derivative of the objective function with respect to the design variables is presented in the following section.

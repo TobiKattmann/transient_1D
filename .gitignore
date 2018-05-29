@@ -16,6 +16,10 @@ src/transient.ipynb
 *.toc
 *.out
 *.gz
+*.bbl
+*.xml
+*.blg
+*blx.bib
 
 # python specific
 __pycache__

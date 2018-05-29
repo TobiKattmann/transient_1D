@@ -1,0 +1,78 @@
+\section{Derivation of the continuous adjoint equation}
+In this section the continuous adjoint equations of the presented optimization problem are derived. The continuous adjoint equations are derived from the (not-discretized) PDE which results itself in a PDE which has the to solved subsequently. But the the incorporated numerical methods are not dictated by the discretization of the primal as it is the case in the discrete adjoint approach.
+
+Again, the considered optimization problem writes: 
+\begin{align}
+\underset{\alpha}{min}\quad &J = J \left( u(x,T) \right) = -f(x)u(x,T), \\
+\text{subject to}\quad &u_t-du_{xx} = 0,\quad u(\cdot,0) = g(x),\quad u(\Gamma,\cdot) = u_{\Gamma}
+\end{align}
+In the following we substitute $\hat{R} = u_t-du_{xx}$. The Lagrangian of the constrained optimization problem is:
+\begin{equation}
+\mathcal{L} = \int\limits_{\Omega} J(u(T)) \,d\Omega - \int\limits_{\Omega}\int\limits_{0}^{T} \lambda \hat{R}(u,d) \,d\Omega dt
+\end{equation}
+Taking the total derivative wrt to the design variables: 
+\begin{equation}
+\frac{\partial\mathcal{L}}{\partial \alpha} = \int\limits_{\Omega} \frac{\partial J}{\partial u(T)} \frac{\partial u(T)}{\partial \alpha} + \frac{\partial J}{\partial \alpha} \,d\Omega - \int\limits_{\Omega}\int\limits_{0}^{T} \lambda \frac{\partial \hat{R}}{\partial u} \frac{\partial u}{\partial \alpha} \,d\Omega dt  - \int\limits_{\Omega}\int\limits_{0}^{T} \lambda \frac{\partial \hat{R}}{\partial \alpha} \,d\Omega dt
+\end{equation}
+As $\frac{\partial u}{\partial \alpha}$ can only be computed with high computational effort the Lagrangian multiplier (adjoint variable) is chosen such that terms including this very $\frac{\partial u}{\partial \alpha}$ vanish.
+\begin{align}
+\int\limits_{\Omega}\int\limits_{0}^{T} \lambda \frac{\partial \hat{R}}{\partial u} \frac{\partial u}{\partial \alpha} \,d\Omega dt &= \int\limits_{\Omega}\int\limits_{0}^{T} \lambda \frac{\partial }{\partial u} \left( \frac{\partial}{\partial t}u - d \frac{\partial^2}{\partial x^2}u \right) \frac{\partial u}{\partial \alpha} \,d\Omega dt\\
+&= \int\limits_{\Omega}\int\limits_{0}^{T} \lambda \frac{\partial}{\partial t} \frac{\partial u}{\partial \alpha} \,d\Omega dt - \int\limits_{\Omega}\int\limits_{0}^{T} \lambda d \frac{\partial^2}{\partial x^2} \frac{\partial u}{\partial \alpha} \,d\Omega dt
+\end{align}
+Integration by parts is applied on both terms individually. First term:
+\begin{equation}
+\int\limits_{\Omega}\int\limits_{0}^{T} \lambda \frac{\partial}{\partial t} \left( \frac{\partial u}{\partial \alpha} \right) \,d\Omega dt =
+\int\limits_{\Omega} \left[ \lambda \frac{\partial u}{\partial \alpha} \right]_{0}^{T} \,d\Omega 
+- \int\limits_{\Omega}\int\limits_{0}^{T} \frac{\partial \lambda}{\partial t} \frac{\partial u}{\partial \alpha} \,d\Omega dt
+\end{equation}
+Second term, integration by parts is applied twice:
+\begin{equation}
+\int\limits_{\Omega}\int\limits_{0}^{T} \lambda d \frac{\partial^2}{\partial x^2} \left( \frac{\partial u}{\partial \alpha} \right) \,d\Omega dt = 
+\int\limits_{0}^{T} \left[ d \lambda \frac{\partial}{\partial x} \left( \frac{\partial u}{\partial \alpha} \right) \right]_{\partial\Omega}  \,dt
+- \int\limits_{0}^{T} \left[ d \frac{\partial}{\partial x} \left(\lambda \right) \frac{\partial u}{\partial \alpha} \right]_{\partial\Omega} \,dt
++ \int\limits_{\Omega}\int\limits_{0}^{T} d \frac{\partial^2 \lambda}{\partial x^2}  \frac{\partial u}{\partial \alpha} \,d\Omega dt
+\end{equation}
+Putting the above terms and the first term of the initial total derivative together:
+\begin{align}
+\int\limits_{\Omega} \frac{\partial J}{\partial u(T)} \frac{\partial u(T)}{\partial \alpha}  \,d\Omega - \int\limits_{\Omega}\int\limits_{0}^{T} \lambda \frac{\partial \hat{R}}{\partial u} \frac{\partial u}{\partial \alpha} \,d\Omega dt = 
+&\int\limits_{\Omega} -\left[ \lambda \frac{\partial u}{\partial \alpha} \right]_{0}^{T} 
++ \left[ \frac{\partial J}{\partial u} \frac{\partial u}{\partial \alpha}\right]^T \,d\Omega \\
+- &\int\limits_{0}^{T} -\left[ d \lambda \frac{\partial}{\partial x}\left( \frac{\partial u}{\partial \alpha} \right) \right]_{\partial\Omega} 
++ \left[ d \frac{\partial}{\partial x} \left( \lambda\right) \frac{\partial u}{\partial \alpha} \right]_{\partial\Omega} \,dt \\
+- &\int\limits_{\Omega}\int\limits_{0}^{T} - \frac{\partial \lambda}{\partial t} \frac{\partial u}{\partial \alpha} - d \frac{\partial^2 \lambda}{\partial x^2}  \frac{\partial u}{\partial \alpha} \,d\Omega dt 
+\end{align}
+In order to receive the adjoint equation with initial conditions and boundary conditions we require the whole above term to be zero. From the first Term the initial conditions for the adjoint equation can be derived.
+\begin{align}
+\int\limits_{\Omega} -\left[ \lambda \frac{\partial u}{\partial \alpha} \right]_{0}^{T} 
++ \left[ \frac{\partial J}{\partial u} \frac{\partial u}{\partial \alpha}\right]^T \,d\Omega &=
+\int\limits_{\Omega} +\left[ \lambda \frac{\partial u}{\partial \alpha} \right]_{0} + \left[- \lambda \frac{\partial u}{\partial \alpha} + \frac{\partial J}{\partial u} \frac{\partial u}{\partial \alpha} \right]^{T} \,d\Omega \\
+&= \int\limits_{\Omega} \left[\left(- \lambda + \frac{\partial J}{\partial u} \right) \frac{\partial u}{\partial \alpha} \right]^{T} \,d\Omega \\
+&\Rightarrow \lambda(T) = \frac{\partial J}{\partial u} \Rightarrow \lambda(T) = -f(x)
+\end{align}
+We used that the derivative of $u$ at time zero is zero as a change in $\alpha$ won't effect the initial conditions as they are fixed and independent of $\alpha$. The second term defines the boundary conditions. In the following equation the second term is zero anyway as we chose our 1D BC to be zero. 
+\begin{align}
+\int\limits_{0}^{T} -\left[ d \lambda \frac{\partial}{\partial x}\left( \frac{\partial u}{\partial \alpha} \right) \right]_{\partial\Omega} 
++ \left[ d \frac{\partial}{\partial x} \left( \lambda\right) \frac{\partial u}{\partial \alpha} \right]_{\partial\Omega} \,dt = &
+\int\limits_{0}^{T} -\left[ d \lambda \frac{\partial}{\partial x}\left( \frac{\partial u}{\partial \alpha} \right) \right]_{\partial\Omega} \,dt  \\
+& \Rightarrow \left[ \lambda \right]_{\partial\Omega} = 0
+\end{align}
+The 3rd term defines the adjoint PDE itself.
+\begin{align}
+\int\limits_{\Omega}\int\limits_{0}^{T} - \frac{\partial \lambda}{\partial t} \frac{\partial u}{\partial \alpha} - d \frac{\partial^2 \lambda}{\partial x^2}  \frac{\partial u}{\partial \alpha} \,d\Omega dt =&
+\int\limits_{\Omega}\int\limits_{0}^{T} \left(- \frac{\partial \lambda}{\partial t}  - d \frac{\partial^2 \lambda}{\partial x^2} \right)  \frac{\partial u}{\partial \alpha} \,d\Omega dt \\
+&\Rightarrow -\lambda_t - d\lambda_{xx} = 0,\quad x\in\Omega,\quad t\in[0,T]
+\end{align}
+Altogether this defines a new IBVP for the adjoint variable:
+\begin{align}
+-\lambda_t - d\lambda_{xx} &= 0 \\
+\lambda(T) &= -f(x) \\
+\left[\lambda\right]_{\partial\Omega} &= 0
+\end{align}
+In order to derive the sensitivities of the objective function wrt to the design variables we use the term which are not zero by construction of the adjoint equation: 
+\begin{align}
+\frac{\partial\mathcal{L}}{\partial \alpha} &= \int\limits_{\Omega}  \frac{\partial J}{\partial \alpha} \,d\Omega 
+- \int\limits_{\Omega}\int\limits_{0}^{T} \lambda \frac{\partial \hat{R}}{\partial \alpha} \,d\Omega dt \\
+&=- \int\limits_{\Omega}\int\limits_{0}^{T} \lambda \frac{\partial \hat{R}}{\partial \alpha} \,d\Omega d
+\end{align}
+The first term is zero in this specific case of the chose objective function.
+%-------------------------------------------------------------------------------------------------------%

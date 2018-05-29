@@ -96,6 +96,7 @@ class Transient_1D_Diffusion:
     self.alpha = alpha
 
     self.dt = 0.0004
+    self.dtau = self.dt
     self.NPt = 10 # number Pseudo time steps
     self.FD1 = Numerics.get_FD_Operator_cental_1st(self.mesh.numnodes, self.mesh.dx)
     self.FD2 = Numerics.get_FD_Operator_cental_2nd(self.mesh.numnodes, self.mesh.dx)
@@ -185,7 +186,7 @@ class Transient_1D_Diffusion:
     TMP = self.FD1@primal_solution
     dRstarda = - TMP[:, np.newaxis]*self.FD1.toarray() - np.diag(self.FD2@primal_solution)
     
-    return -self.dt * dRstarda
+    return -self.dtau * dRstarda
 
 #---------------------------------------------------------------------------------------#
 if __name__ == '__main__':

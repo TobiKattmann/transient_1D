@@ -1,0 +1,114 @@
+%-------------------------------------------------------------------------------------------------------%
+\section{Primal}
+%-------------------------------------------------------------------------------------------------------%
+\subsection{Primal equation}
+The heat equation in 3D is a parabolic PDE:
+\begin{equation}\label{eq:heat3D}
+\frac{\partial u}{\partial t} + \nabla\cdot \left(- d\nabla u \right) = q.
+\end{equation}
+The task is to find a solution $u\left(\mathbf{x}, t\right)\in\mathbb{R}$ of  (\ref{eq:heat3D}) for $\mathbf{x}\in\mathbb{R}^3$ and $t\in(0,T]$. The inital and boundary conditions are:
+\begin{align}
+u(\mathbf{x},0) & = u_{init}(\mathbf{x}), \\
+u(\Gamma,t) & = u_{BC}(\mathbf{x,t}), \quad \mathbf{x}\in\Gamma
+\end{align}
+The parameter $d$ is the thermal diffusivity (physical meaning) and is here considered as a function of space $d\left(\mathbf{x}\right)$. In 1D, the IBVP (Inital Boundary Value Problem) writes:
+\begin{eqnarray}
+\frac{\partial u}{\partial t} +\frac{\partial}{\partial x} \left(- d \frac{\partial u}{\partial x}  \right) &=& 0, \\
+\text{subject to} \\
+u(x,0) &=& u_{init}(x), \\
+u(x_{start},t)&=& u_{start}, \\
+u(x_{end},t) &=& u_{end}.
+\end{eqnarray}
+\subsubsection{Analaytical solution (fundamental sol)}
+In order to validate the primal solution one can use the fundamental solution to the Diffusion problem. The following is derived with the help of MIT MATH 18.152 notes \href{http://math.mit.edu/~jspeck/18.152_Fall2011/Lecture%20notes/18152%20lecture%20notes%20-%205.pdf}{Link} by Prof Speck. The integral at the end is solved with wolframalpha.com notebook using the input	
+%Integrate[Exp[-y^2] Exp[-Abs[x - y]^2/a], y,  Assumptions -> Element[a | x | y, Reals]] but there is still some erf() bullshit function	
+\href{https://sandbox.open.wolframcloud.com/app/objects/a62c75f0-0ef8-44e4-8ba9-4eedb585f643#sidebar=compute}{Link}.
+The 1D heat equation in our case writes:
+\begin{equation}
+u_t-u_{xx} = 0,\quad u(x,0) = exp\left( -(y-15)^2 \right)
+\end{equation}
+Starting from Theorem 1.1 from the course notes one simply needs to compute equation (1.1.12) which is done here by using wolframalpha and $g(y)=exp\left( -y^2 \right)$. This gives the solution:
+\begin{equation}
+u(x,t) = \frac{1}{(4\pi d t)^{1/2}} \sqrt{\pi} \sqrt{\frac{a}{1+a}}exp\left( -\frac{x^2}{1+a} \right),\quad a= 4dt
+\end{equation}
+For $g(y)=exp\left( -(y-15)^2 \right)$ one has:
+\begin{align}
+u(x,t) &= \frac{1}{(4\pi d t)^{1/2}} \sqrt{\pi} \sqrt{\frac{a}{1+a}}exp\left( -\frac{(x-15)^2}{1+a} \right),\quad a= 4dt \\
+u(x,t) &= \frac{1}{\sqrt{1+4dt}}exp\left(-\frac{(x-15)^2}{1+4dt} \right))
+\end{align}
+And for later use, the continuous adjoint equation is:
+\begin{equation}
+-\lambda_t-\lambda_{xx} = 0,\quad \lambda(x,T) = -exp\left( -(y-20)^2 \right)
+\end{equation}
+When readjusting the temporal propagation one gets:
+\begin{equation}
+\lambda_t-\lambda_{xx} = 0,\quad \lambda(x,0) = -exp\left( -(y-20)^2 \right)
+\end{equation}
+which again can be solved with the presented approach using $g(y)=-exp\left( -(y-20)^2 \right)$:
+\begin{equation}
+\lambda(x,t) = \frac{-1}{\sqrt{1+4dt}}exp\left(-\frac{(x-20)^2}{1+4dt} \right)
+\end{equation}
+
+%-------------------------------------------------------------------------------------------------------%
+\subsection{Discretization of primal}
+We want to solve the transient 1D Diffusion equation numerically with Finite Differences (FD). We will use the Method Of Lines (MOL) with a dual time stepping approach. Therefore we need to discretize the spatial and temporal domain such that $x=(x_i), i=0..m-1$ () and $t=(t_i), i=0 .. n-1$. That means we have $m$ grid points and $m-2$ DOF's as we have Dirichlet boundary conditions on the two outer grid points. There are $n$ time level where $n-1$ have to be computed as the initial solution is given. We rewrite the PDE by using the product rule of differentiation:
+\begin{equation}
+\frac{\partial u}{\partial t} - \frac{\partial d}{\partial x}\frac{\partial u}{\partial x} -d \frac{\partial^2 u}{\partial x^2}  = 0
+\end{equation}
+We set up an equation for each of the $m-2$ DOF's, as the values at the Dirichlet points $u_0, u_{n-1}$ are already known. First order spatial derivatives in the second term are discretized using central differences.
+\begin{equation}
+\frac{\partial u_i}{\partial x} = \frac{u_{i+1} - u_{i-1}}{2\Delta x}
+\end{equation}
+Second order spatial derivatives in the third term are discretized using central differences.
+\begin{equation}
+\frac{\partial^2 u_i}{\partial x^2} = \frac{u_{i+1} - 2 u_{i} + u_{i-1}}{\Delta x^2}
+\end{equation}
+Both methods can be expressed as an operator in form of a matrix that is applied on the quantity that needs to be derived. Say, First order derivative is expressed as $\mathbf{A_1}$ and second order as $\mathbf{A_2}$:
+\begin{equation}
+\frac{\partial u}{\partial t} - -diag(\mathbf{A_1}d)\mathbf{A_1}u - diag(d) \mathbf{A_2}u = 0
+\end{equation}
+As the spatial discretization is linear in $u$ we collect the terms and simplify towards a single fixed operator working on u:
+\begin{align}
+&-diag(\mathbf{A_1}d)\mathbf{A_1}u - diag(d) \mathbf{A_2}u \\
+=&\left[ -diag(\mathbf{A_1}d)\mathbf{A_1} - diag(d) \mathbf{A_2} \right]u \\
+=& \mathbf{B}u
+\end{align}
+For the MOL the spatial discretization terms are gathered in a Term $R(u,d)$.
+\begin{align}
+&R(u,d) = \mathbf{B}u  \\
+\Rightarrow & \frac{\partial u}{\partial t} + R(u,d) = 0
+\end{align}
+The time discretization is done using first order backward differences:
+\begin{equation}
+\hat R (u,d) = \frac{u^{n} - u^{n-1}}{\Delta t} + R(u^n,d) = 0,\quad n= 1\,..\,N
+\end{equation}
+With $N$ being the number of physical time steps. $u^0$ is given as the initial solution as part of the IBVP. The dual time stepping method is then used to converge the above equation to a steady state in fictitious time $\tau$. 
+\begin{equation}
+\frac{d u^n}{d\tau} + \hat R(u^{n},d) = 0
+\end{equation} 
+The explicit Euler method is used here. Each iteration of the pseudo time stepping is depicted with the subscript $p$:
+\begin{equation}
+\frac{u^n_{p+1}-u^n_{p}}{\Delta\tau} + \hat R(u^{n}_{p},d) = 0,\quad p= 1\,..\,m,\quad n= 1\,..\,N
+\end{equation} 
+This can be rewritten in a fixed-point iteration form:
+\begin{align}
+u^n_{p+1} &= u^n_{p} - \Delta\tau\hat R(u^{n}_{p},d),\quad p= 1\,..\,m,\quad n= 1\,..\,N\\
+u^n_{p+1} &= G^n \left( u^n_p, u^{n-1} \right),\quad p= 1\,..\,m,\quad n= 1\,..\,N
+\end{align}
+where $u^{n-1}$ is the converged solution of the previous time step. The fixed point iteration converges to the solution (fixed point) $u^n$:
+\begin{equation}
+u^n = G^n\left( u^n, u^{n-1} \right),\quad n= 1\,..\,N
+\end{equation}
+%-------------------------------------------------------------------------------------------------------%
+\subsection{Optimization task}
+The (discrete) optimization Task is:
+\begin{align}
+\underset{\alpha}{min}\quad J &= J(u^N), \\
+\text{subject to}\quad u^n &= G^n \left( u^n, u^{n-1}, \alpha \right),\quad n= 1\,..\,N
+\end{align}
+The objective function is only dependent on the solution at the final time. This decision will have impact during the derivation of the adjoint equation, the derivative of the objective function with respect to the state variable will appear as an initial condition for the adjoint solution instead of a source term in the adjoint equation:
+\begin{equation}
+J(u^N) = -(u^N)^T f(x)
+\end{equation}
+The negative sign indicates that the actually a maximization is desired by with that the widely used understanding that optimization equals minimization we are consistent with that. 
+The objective function can be understood as spatial integration of solution with a function $f$.
